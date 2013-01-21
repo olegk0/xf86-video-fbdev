@@ -32,32 +32,14 @@ void CloseXVideo(ScreenPtr pScreen);
 
 #define ARRAY_SIZE(a) (sizeof((a)) / (sizeof(*(a))))
 
-#define FBIOGET_OVERLAY_STATE   0X4619
-#define FBIOSET_OVERLAY_STATE   0x5018
-#define FBIOSET_ENABLE          0x5019
-#define FBIOGET_ENABLE          0x5020
-
 #define CLIENT_VIDEO_ON	0x04
 #define CLIENT_VIDEO_INIT	0x02
-
-#define FBIOSET_YUV_ADDR 0x5002
 
 struct offscreen_area {
   unsigned char *priv;
   unsigned char *ptr;
   unsigned int size;
   int fd;
-};
-
-enum {
-    RGBA_8888          = 1,
-    RGBX_8888          = 2,
-    RGB_888            = 3,
-    RGB_565            = 4,
-    /* Legacy formats (deprecated), used by ImageFormat.java */
-    YCbCr_422_SP       = 0x10, // NV16	16
-    YCrCb_NV12         = 0x20, // YUY2	32
-    YCrCb_444          = 0x22, //yuv444 34
 };
 
 #define FOURCC_RGBA8888   0x41424752

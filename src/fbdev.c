@@ -22,10 +22,17 @@
 
 #include "disp_hwcursor.h"
 #include "mali_dri2.h"
+
+#if XV
 #include "video.h"
+#endif
 
 /* for visuals */
 #include "fb.h"
+#include "rk3066.h"
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #if GET_ABI_MAJOR(ABI_VIDEODRV_VERSION) < 6
 #include "xf86Resources.h"
@@ -37,10 +44,6 @@
 #include "xf86xv.h"
 
 #include "compat-api.h"
-
-#ifdef XSERVER_LIBPCIACCESS
-#include <pciaccess.h>
-#endif
 
 static Bool debug = 1;
 #define DEBUG 1
@@ -58,10 +61,6 @@ static Bool debug = 1;
 static const OptionInfoRec * FBDevAvailableOptions(int chipid, int busid);
 static void	FBDevIdentify(int flags);
 static Bool	FBDevProbe(DriverPtr drv, int flags);
-#ifdef XSERVER_LIBPCIACCESS
-static Bool	FBDevPciProbe(DriverPtr drv, int entity_num,
-     struct pci_device *dev, intptr_t match_data);
-#endif
 static Bool	FBDevPreInit(ScrnInfoPtr pScrn, int flags);
 static Bool	FBDevScreenInit(SCREEN_INIT_ARGS_DECL);
 static Bool	FBDevCloseScreen(CLOSE_SCREEN_ARGS_DECL);
@@ -88,17 +87,6 @@ static int pix24bpp = 0;
 #define FBDEV_NAME		"FBDEV"
 #define FBDEV_DRIVER_NAME	"fbdev"
 
-#ifdef XSERVER_LIBPCIACCESS
-static const struct pci_id_match fbdev_device_match[] = {
-    {
-	PCI_MATCH_ANY, PCI_MATCH_ANY, PCI_MATCH_ANY, PCI_MATCH_ANY,
-	0x00030000, 0x00ffffff, 0
-    },
-
-    { 0, 0, 0 },
-};
-#endif
-
 _X_EXPORT DriverRec FBDEV = {
 	FBDEV_VERSION,
 	FBDEV_DRIVER_NAME,
@@ -111,11 +99,6 @@ _X_EXPORT DriverRec FBDEV = {
 	NULL,
 	0,
 	FBDevDriverFunc,
-
-#ifdef XSERVER_LIBPCIACCESS
-    fbdev_device_match,
-    FBDevPciProbe
-#endif
 };
 
 /* Supported "chipsets" */
@@ -129,6 +112,7 @@ typedef enum {
 	OPTION_SHADOW_FB,
 	OPTION_ROTATE,
 	OPTION_FBDEV,
+	OPTION_HWBPP,
 	OPTION_DEBUG
 } FBDevOpts;
 
@@ -136,6 +120,7 @@ static const OptionInfoRec FBDevOptions[] = {
 	{ OPTION_SHADOW_FB,	"ShadowFB",	OPTV_BOOLEAN,	{0},	FALSE },
 	{ OPTION_ROTATE,	"Rotate",	OPTV_STRING,	{0},	FALSE },
 	{ OPTION_FBDEV,		"fbdev",	OPTV_STRING,	{0},	FALSE },
+	{ OPTION_HWBPP,		"HWbpp",	OPTV_STRING,	{0},	FALSE },
 	{ OPTION_DEBUG,		"debug",	OPTV_BOOLEAN,	{0},	FALSE },
 	{ -1,			NULL,		OPTV_NONE,	{0},	FALSE }
 };
@@ -218,52 +203,6 @@ FBDevIdentify(int flags)
 }
 
 
-#ifdef XSERVER_LIBPCIACCESS
-static Bool FBDevPciProbe(DriverPtr drv, int entity_num,
-			  struct pci_device *dev, intptr_t match_data)
-{
-    ScrnInfoPtr pScrn = NULL;
-
-    if (!xf86LoadDrvSubModule(drv, "fbdevhw"))
-	return FALSE;
-	    
-    pScrn = xf86ConfigPciEntity(NULL, 0, entity_num, NULL, NULL,
-				NULL, NULL, NULL, NULL);
-    if (pScrn) {
-	char *device;
-	GDevPtr devSection = xf86GetDevFromEntity(pScrn->entityList[0],
-						  pScrn->entityInstanceList[0]);
-
-	device = xf86FindOptionValue(devSection->options, "fbdev");
-	if (fbdevHWProbe(NULL, device, NULL)) {
-	    pScrn->driverVersion = FBDEV_VERSION;
-	    pScrn->driverName    = FBDEV_DRIVER_NAME;
-	    pScrn->name          = FBDEV_NAME;
-	    pScrn->Probe         = FBDevProbe;
-	    pScrn->PreInit       = FBDevPreInit;
-	    pScrn->ScreenInit    = FBDevScreenInit;
-	    pScrn->SwitchMode    = fbdevHWSwitchModeWeak();
-	    pScrn->AdjustFrame   = fbdevHWAdjustFrameWeak();
-	    pScrn->EnterVT       = fbdevHWEnterVTWeak();
-	    pScrn->LeaveVT       = fbdevHWLeaveVTWeak();
-	    pScrn->ValidMode     = fbdevHWValidModeWeak();
-
-	    xf86DrvMsg(pScrn->scrnIndex, X_CONFIG,
-		       "claimed PCI slot %d@%d:%d:%d\n", 
-		       dev->bus, dev->domain, dev->dev, dev->func);
-	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
-		       "using %s\n", device ? device : "default device");
-	}
-	else {
-	    pScrn = NULL;
-	}
-    }
-
-    return (pScrn != NULL);
-}
-#endif
-
-
 static Bool
 FBDevProbe(DriverPtr drv, int flags)
 {
@@ -271,9 +210,6 @@ FBDevProbe(DriverPtr drv, int flags)
 	ScrnInfoPtr pScrn;
        	GDevPtr *devSections;
 	int numDevSections;
-#ifndef XSERVER_LIBPCIACCESS
-	int bus,device,func;
-#endif
 	char *dev;
 	Bool foundScreen = FALSE;
 
@@ -290,58 +226,15 @@ FBDevProbe(DriverPtr drv, int flags)
 	    return FALSE;
 	    
 	for (i = 0; i < numDevSections; i++) {
-	    Bool isIsa = FALSE;
-	    Bool isPci = FALSE;
 
 	    dev = xf86FindOptionValue(devSections[i]->options,"fbdev");
 	    if (devSections[i]->busID) {
-#ifndef XSERVER_LIBPCIACCESS
-	        if (xf86ParsePciBusString(devSections[i]->busID,&bus,&device,
-					  &func)) {
-		    if (!xf86CheckPciSlot(bus,device,func))
-		        continue;
-		    isPci = TRUE;
-		} else
-#endif
-#ifdef HAVE_ISA
-		if (xf86ParseIsaBusString(devSections[i]->busID))
-		    isIsa = TRUE;
-		else
-#endif
 		    0;
 		  
 	    }
 	    if (fbdevHWProbe(NULL,dev,NULL)) {
 		pScrn = NULL;
-		if (isPci) {
-#ifndef XSERVER_LIBPCIACCESS
-		    /* XXX what about when there's no busID set? */
-		    int entity;
-		    
-		    entity = xf86ClaimPciSlot(bus,device,func,drv,
-					      0,devSections[i],
-					      TRUE);
-		    pScrn = xf86ConfigPciEntity(pScrn,0,entity,
-						      NULL,RES_SHARED_VGA,
-						      NULL,NULL,NULL,NULL);
-		    /* xf86DrvMsg() can't be called without setting these */
-		    pScrn->driverName    = FBDEV_DRIVER_NAME;
-		    pScrn->name          = FBDEV_NAME;
-		    xf86DrvMsg(pScrn->scrnIndex, X_CONFIG,
-			       "claimed PCI slot %d:%d:%d\n",bus,device,func);
 
-#endif
-		} else if (isIsa) {
-#ifdef HAVE_ISA
-		    int entity;
-		    
-		    entity = xf86ClaimIsaSlot(drv, 0,
-					      devSections[i], TRUE);
-		    pScrn = xf86ConfigIsaEntity(pScrn,0,entity,
-						      NULL,RES_SHARED_VGA,
-						      NULL,NULL,NULL,NULL);
-#endif
-		} else {
 		   int entity;
 
 		    entity = xf86ClaimFbSlot(drv, 0,
@@ -349,7 +242,6 @@ FBDevProbe(DriverPtr drv, int flags)
 		    pScrn = xf86ConfigFbEntity(pScrn,0,entity,
 					       NULL,NULL,NULL,NULL);
 		   
-		}
 		if (pScrn) {
 		    foundScreen = TRUE;
 		    
@@ -375,6 +267,79 @@ FBDevProbe(DriverPtr drv, int flags)
 	return foundScreen;
 }
 
+//IAM
+Bool FBDevHWSetMode(ScrnInfoPtr pScrn, FBDevPtr fPtr)
+{
+ int depth, bpp, fd;
+ struct fb_var_screeninfo tvar;
+ const char *device;
+
+    device = xf86FindOptionValue(fPtr->pEnt->device->options,"fbdev");
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "RK30: Try setup nonstd mode for dev:%s\n", device);
+    fd = open(device, O_RDONLY, 0);
+    if (-1 == fd) {
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to open framebuffer device\n");
+        goto err;
+    }
+    /* get current fb device settings */
+    if (-1 == ioctl(fd, FBIOGET_VSCREENINFO, (void *) (&tvar))) {
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "ioctl FBIOGET_VSCREENINFO\n");
+        goto err1;
+    }
+
+    device = xf86FindOptionValue(fPtr->pEnt->device->options,"HWbpp");
+    if(device == NULL)
+	depth = 32;
+    else
+	depth = atoi(device);
+
+    tvar.red.length = 8;
+    tvar.red.offset = 16;
+    tvar.green.length = 8;
+    tvar.green.offset = 8;
+    tvar.blue.length = 8;
+    tvar.blue.offset = 0;
+    tvar.transp.length = 8;
+    tvar.transp.offset = 24;
+    bpp = 32;
+    switch (depth){
+/*	case 16:
+	    tvar.nonstd = RGB_565;
+	    bpp = 16;
+	    tvar.red.length = 5,
+	    tvar.red.offset = 11,
+	    tvar.green.length = 6,
+	    tvar.green.offset = 5,
+	    tvar.blue.length = 5,
+	    tvar.transp.length = 0;
+	    tvar.transp.offset = 0;
+	break;
+	case 24:
+	    tvar.nonstd = RGB_888;
+	    bpp = 24;
+	    tvar.transp.length = 0;
+	    tvar.transp.offset = 0;
+	break;*/
+	case 32:
+	    tvar.nonstd = RGBX_8888;
+	break;
+	default:
+	    tvar.nonstd = RGBX_8888;
+    }
+    tvar.bits_per_pixel = bpp;
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "RK30: Setup for depth:%d\n", depth);
+    if (0 != ioctl(fd, FBIOPUT_VSCREENINFO, (void *) (&tvar))) {
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "ioctl FBIOPUT_VSCREENINFO\n");
+        goto err1;
+    }
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "RK30: Setup nonstd mode completed\n");
+    return TRUE;
+err1:
+    close(fd);
+err:
+    return FALSE;
+}
+
 static Bool
 FBDevPreInit(ScrnInfoPtr pScrn, int flags)
 {
@@ -398,27 +363,16 @@ FBDevPreInit(ScrnInfoPtr pScrn, int flags)
 
 	fPtr->pEnt = xf86GetEntityInfo(pScrn->entityList[0]);
 
-#ifndef XSERVER_LIBPCIACCESS
-	pScrn->racMemFlags = RAC_FB | RAC_COLORMAP | RAC_CURSOR | RAC_VIEWPORT;
-	/* XXX Is this right?  Can probably remove RAC_FB */
-	pScrn->racIoFlags = RAC_FB | RAC_COLORMAP | RAC_CURSOR | RAC_VIEWPORT;
-
-	if (fPtr->pEnt->location.type == BUS_PCI &&
-	    xf86RegisterResources(fPtr->pEnt->index,NULL,ResExclusive)) {
-		xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		   "xf86RegisterResources() found resource conflicts\n");
-		return FALSE;
-	}
-#endif
 	/* open device */
-	if (!fbdevHWInit(pScrn,NULL,xf86FindOptionValue(fPtr->pEnt->device->options,"fbdev")))
+//IAM
+	FBDevHWSetMode(pScrn, fPtr);
+	if (!fbdevHWInit(pScrn,NULL,(char *)xf86FindOptionValue(fPtr->pEnt->device->options,"fbdev")))
 		return FALSE;
 	default_depth = fbdevHWGetDepth(pScrn,&fbbpp);
 	if (!xf86SetDepthBpp(pScrn, default_depth, default_depth, fbbpp,
 			     Support24bppFb | Support32bppFb | SupportConvert32to24 | SupportConvert24to32))
 		return FALSE;
 	xf86PrintDepthBpp(pScrn);
-
 	/* Get the depth24 pixmap format */
 	if (pScrn->depth == 24 && pix24bpp == 0)
 		pix24bpp = xf86GetBppFromDepth(pScrn, 24);

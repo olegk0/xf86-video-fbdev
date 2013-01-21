@@ -35,6 +35,7 @@
 #include "os.h"
 
 #include "video.h"
+#include "rk3066.h"
 #include "fbdev_priv.h"
 #include <sys/mman.h>
 
