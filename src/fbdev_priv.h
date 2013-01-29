@@ -9,11 +9,20 @@
 //#include "xf86.h"
 #include "xf86xv.h"
 #include "xf86fbman.h"
+#include "ion/linux_ion.h"
+
+struct mion_s  {
+    struct ion_allocation_data alloc_data;
+    struct ion_handle_data handle_data;
+    struct ion_fd_data fd_data;
+    struct ion_phys_data phys_data;
+};
 
 typedef struct {
 	unsigned char *fbmio;//for UV
 	int   ovl_fd;
 	int  fb_fd;
+	int  ion_fd;
 	unsigned char *fbmem;//for RGB or Y
 	CARD32   fbmem_len;
 	CARD32   fbmio_len;
@@ -26,6 +35,7 @@ typedef struct {
 	int npixels;
 	int nlines;
 	char	flmmode;
+        struct mion_s ion;
 //	DisplayModeRec buildin;
 //	int xres;
 //	int yres;

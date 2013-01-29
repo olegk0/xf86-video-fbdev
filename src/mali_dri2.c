@@ -94,8 +94,8 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     buffer->name     = ump_secure_id_get(handle);
     buffer->flags    = 0; /* offset */
 
-    ErrorF("MaliDRI2CreateBuffer attachment=%d %p, format=%d, cpp=%d, depth=%d\n",
-           attachment, buffer, format, buffer->cpp, privates->depth);
+//    ErrorF("MaliDRI2CreateBuffer attachment=%d %p, format=%d, cpp=%d, depth=%d\n",
+//           attachment, buffer, format, buffer->cpp, privates->depth);
     return buffer;
 }
 
@@ -104,7 +104,7 @@ static void MaliDRI2DestroyBuffer(DrawablePtr pDraw, DRI2Buffer2Ptr buffer)
     MaliDRI2BufferPrivatePtr privates;
     ScreenPtr pScreen = pDraw->pScreen;
 
-    ErrorF("Destroying attachment %d for drawable %p\n", buffer->attachment, pDraw);
+//    ErrorF("Destroying attachment %d for drawable %p\n", buffer->attachment, pDraw);
 
     if (buffer != NULL) {
         privates = (MaliDRI2BufferPrivatePtr)buffer->driverPrivate;
