@@ -40,10 +40,10 @@
 #include <sys/mman.h>
 
 #define XVPORTS 1
-#define PAGE_MASK    (~(getpagesize() - 1))
+#define PAGE_MASK    (getpagesize() - 1)
 
 static XF86VideoEncodingRec DummyEncoding[1] = {
-   {0, "XV_IMAGE", 2048, 2048, {1, 1}}
+   {0, "XV_IMAGE", 1280, 720, {1, 1}}
 };
 
 static XF86VideoFormatRec Formats[] = {
@@ -60,7 +60,7 @@ XF86ImageRec Images[] = {
 };
 
 //-------------------------------------------------------------------
-void clear_buf(unsigned char *buf, CARD32 len)
+static void clear_buf(unsigned char *buf, CARD32 len)
 {
     while(len>0){
 	len--;
@@ -68,11 +68,11 @@ void clear_buf(unsigned char *buf, CARD32 len)
     }
 }
 
-void free_ovl_memory(ScrnInfoPtr pScrn)
+static void free_ovl_memory(ScrnInfoPtr pScrn)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     OvlHWPtr	overlay = pMxv->overlay;
-int errno;
+    int errno;
 
 xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Try unmap \n");
     if (overlay->fbmem != NULL){
@@ -83,62 +83,35 @@ xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "fbmem!=NULL \n");
 	    overlay->fbmem = NULL;
 //xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Err fbmem unmap:%d \n", errno);
     }
-    if (overlay->fbmio != NULL){
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "fbmio!=NULL \n");
-	clear_buf(overlay->fbmio, overlay->fbmio_len);
-	errno = munmap(overlay->fbmio, overlay->fbmio_len);
-        if(errno == 0)
-	    overlay->fbmio = NULL;
-//xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Err fbmio unmap:%d \n", errno);
-    }
 xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Unmaped \n");
 }
 
-Bool alloc_ovl_memory(ScrnInfoPtr pScrn, unsigned int  size)
+static Bool alloc_ovl_memory(ScrnInfoPtr pScrn, unsigned int  size)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     OvlHWPtr	overlay = pMxv->overlay;
 //    unsigned int len, start, offset;
     unsigned int yuv_phy[2];
 
-    if((overlay->fbmio != NULL)&&(overlay->fbmem != NULL))	return TRUE;
     if (overlay == NULL)	return FALSE;
+    if(overlay->fbmem != NULL)	return TRUE;
 xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Try mmap \n");
 //    if(len < size)	return FALSE;
-//    start = overlay->fix.smem_start;
-//        len = overlay->fix.smem_len;
-//        len = overlay->fix.mmio_len;
-//    overlay->fboff = (unsigned long)start  & ~PAGE_MASK;
-    overlay->fbmem_len = overlay->fix.smem_len >> 1;
-    overlay->fbmem_len = overlay->fbmem_len & ~7;
-    if ( NULL == overlay->fbmem ){
-            overlay->fbmem = mmap( NULL, overlay->fbmem_len, PROT_READ | PROT_WRITE,
-						     MAP_SHARED, overlay->ovl_fd, 0);
-            if ( -1 == (long)overlay->fbmem ){
-                    xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Error mmap fb1_mem, fbmem_len:%X offset:0\n",overlay->fbmem_len);
-                    overlay->fbmem = NULL;
-		    return FALSE;
-            }
-    }
-//    offset = len;
-    overlay->fbmio_len = overlay->fbmem_len;
-//    start = overlay->fix.smem_start;
-//        len = overlay->fix.smem_len;
-    if ( NULL == overlay->fbmio ){
-            overlay->fbmio = mmap( NULL, overlay->fbmio_len, PROT_READ | PROT_WRITE,
-				     MAP_SHARED, overlay->ovl_fd, overlay->fbmem_len);
-            if ( -1 == (long)overlay->fbmio ){
-                    xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Error mmap fb1mio_mem, fbmem_len:%X offset:%X\n",overlay->fbmem_len,overlay->fix.smem_len);
-                    overlay->fbmio = NULL;
-		    free_ovl_memory(pScrn);
-		    return FALSE;
-            }
+    overlay->fbmem_len = overlay->fix.smem_len;
+    overlay->fbmio_len = (overlay->fbmem_len >> 1) & ~PAGE_MASK;
+
+    overlay->fbmem = mmap( NULL, overlay->fbmem_len, PROT_READ | PROT_WRITE,
+					     MAP_SHARED, overlay->ovl_fd, 0);
+    if ( -1 == (long)overlay->fbmem ){
+        xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Error mmap fb1_mem, fbmem_len:%X offset:0\n",overlay->fbmem_len);
+        overlay->fbmem = NULL;
+	return FALSE;
     }
 //xf86DrvMsg( pScrn->scrnIndex, X_INFO, "mmaped fb1_mem\n");
-    clear_buf(overlay->fbmio, overlay->fbmio_len);
+    overlay->fbmio = overlay->fbmem + overlay->fbmio_len;
     clear_buf(overlay->fbmem, overlay->fbmem_len);
     yuv_phy[0] = overlay->fix.smem_start;  //four y
-    yuv_phy[1] = overlay->fix.smem_start + overlay->fbmem_len;  //four uv
+    yuv_phy[1] = overlay->fix.smem_start + overlay->fbmio_len;  //four uv
     ioctl(overlay->ovl_fd, FBIOSET_YUV_ADDR, &yuv_phy);
 
 xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Mmaped \n");
@@ -152,7 +125,6 @@ static void XVDisplayVideoOverlay(ScrnInfoPtr pScrn, int mode)
     OvlHWPtr	overlay = pMxv->overlay;
 
   msync(overlay->fbmem,overlay->fbmem_len, mode);
-  msync(overlay->fbmio,overlay->fbmio_len, mode);
 }
 //----------------------------------------------------
 Bool XVInitStreams(ScrnInfoPtr pScrn, char FlScr, short drw_w, short drw_h, short width, short height, int id)
@@ -165,6 +137,9 @@ Bool XVInitStreams(ScrnInfoPtr pScrn, char FlScr, short drw_w, short drw_h, shor
 xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Try setup overlay \n");
     if( 0 != ioctl(overlay->fb_fd, FBIOGET_VSCREENINFO, &overlay->var)) return FALSE;
     memcpy(&overlay->saved_var, &overlay->var, sizeof(struct fb_var_screeninfo));
+xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "overlay call aloc\n");
+    if(!alloc_ovl_memory(pScrn, 1))	return FALSE;
+
     switch(id) {
     case FOURCC_YV12:
     case FOURCC_I420:
@@ -221,10 +196,9 @@ xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "overlay try set res - x:%d, y:%d ---- nl
     ioctl(overlay->fb_fd, FBIOSET_OVERLAY_STATE, &tmp);
     tmp = 1;
     ioctl(overlay->ovl_fd, FBIOSET_ENABLE, &tmp);
-    overlay->pixels = overlay->var.xres * overlay->var.yres;
+    overlay->pixels = (overlay->var.xres_virtual + 10) * overlay->nlines;
+// overlay->var.xres * overlay->var.yres;
     overlay->offset = (overlay->offset>>1)<<1;
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "overlay call aloc\n");
-    if(!alloc_ovl_memory(pScrn, 1))	return FALSE;
     return TRUE;
 }
 
@@ -439,7 +413,6 @@ static void XVStopVideo(ScrnInfoPtr pScrn, pointer data, Bool exit)
 
     REGION_EMPTY(pScrn->pScreen, &pPriv->clip);
 //xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Stop video \n");
-    clear_buf(overlay->fbmio, overlay->fbmio_len);
     clear_buf(overlay->fbmem, overlay->fbmem_len);
     pPriv->videoStatus = 0;
 
@@ -619,7 +592,7 @@ Bool init_ovl(ScreenPtr pScreen)
     if (overlay->ovl_fd < 0) goto err1;
 
     if( 0 == ioctl(overlay->ovl_fd, FBIOGET_FSCREENINFO, &overlay->fix))
-    if(overlay->fix.mmio_start != 0)
+    if(overlay->fix.smem_start != 0)
     if(0 == ioctl(overlay->fb_fd, FBIOGET_VSCREENINFO, &overlay->var)){
 	overlay->var.activate = 0;
 	memcpy(&overlay->saved_var, &overlay->var, sizeof(struct fb_var_screeninfo));
@@ -694,8 +667,8 @@ CloseXVideo(ScreenPtr pScreen)
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     OvlHWPtr	overlay = pMxv->overlay;
 
-    free_ovl_memory(pScrn);
     if(overlay != NULL){
+	free_ovl_memory(pScrn);
         close(overlay->ovl_fd);
 	close(overlay->fb_fd);
         free(overlay);
