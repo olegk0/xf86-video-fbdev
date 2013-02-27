@@ -1,29 +1,16 @@
-disp_hwcursor.lo: disp_hwcursor.c ../config.h \
- /usr/include/xorg/xorg-server.h /usr/include/xorg/xf86.h \
- /usr/include/xorg/xf86str.h /usr/include/xorg/misc.h \
- /usr/include/X11/Xosdefs.h /usr/include/X11/Xfuncproto.h \
- /usr/include/X11/Xmd.h /usr/include/X11/X.h /usr/include/X11/Xdefs.h \
- /usr/lib/gcc/arm-linux-gnueabihf/4.7/include/stddef.h \
- /usr/lib/gcc/arm-linux-gnueabihf/4.7/include/stdint.h \
- /usr/include/stdint.h /usr/include/features.h \
+fb_exa.lo: fb_exa.c /usr/include/stdio.h /usr/include/features.h \
  /usr/include/arm-linux-gnueabihf/bits/predefs.h \
  /usr/include/arm-linux-gnueabihf/sys/cdefs.h \
  /usr/include/arm-linux-gnueabihf/bits/wordsize.h \
  /usr/include/arm-linux-gnueabihf/gnu/stubs.h \
- /usr/include/arm-linux-gnueabihf/bits/wchar.h /usr/include/xorg/os.h \
- /usr/lib/gcc/arm-linux-gnueabihf/4.7/include/stdarg.h \
- /usr/include/string.h /usr/include/xlocale.h \
- /usr/include/arm-linux-gnueabihf/bits/string.h \
- /usr/include/arm-linux-gnueabihf/bits/string2.h /usr/include/stdlib.h \
- /usr/include/arm-linux-gnueabihf/bits/string3.h /usr/include/stdio.h \
+ /usr/lib/gcc/arm-linux-gnueabihf/4.6/include/stddef.h \
  /usr/include/arm-linux-gnueabihf/bits/types.h \
  /usr/include/arm-linux-gnueabihf/bits/typesizes.h /usr/include/libio.h \
  /usr/include/_G_config.h /usr/include/wchar.h \
+ /usr/lib/gcc/arm-linux-gnueabihf/4.6/include/stdarg.h \
  /usr/include/arm-linux-gnueabihf/bits/stdio_lim.h \
  /usr/include/arm-linux-gnueabihf/bits/sys_errlist.h \
- /usr/include/arm-linux-gnueabihf/bits/stdio.h \
- /usr/include/arm-linux-gnueabihf/bits/stdio2.h \
- /usr/include/xorg/Xprintf.h /usr/include/X11/Xfuncs.h \
+ /usr/include/arm-linux-gnueabihf/bits/stdio.h /usr/include/stdlib.h \
  /usr/include/arm-linux-gnueabihf/bits/waitflags.h \
  /usr/include/arm-linux-gnueabihf/bits/waitstatus.h /usr/include/endian.h \
  /usr/include/arm-linux-gnueabihf/bits/endian.h \
@@ -33,12 +20,34 @@ disp_hwcursor.lo: disp_hwcursor.c ../config.h \
  /usr/include/arm-linux-gnueabihf/bits/select.h \
  /usr/include/arm-linux-gnueabihf/bits/sigset.h \
  /usr/include/arm-linux-gnueabihf/bits/time.h \
- /usr/include/arm-linux-gnueabihf/bits/select2.h \
  /usr/include/arm-linux-gnueabihf/sys/sysmacros.h \
  /usr/include/arm-linux-gnueabihf/bits/pthreadtypes.h \
- /usr/include/alloca.h /usr/include/arm-linux-gnueabihf/bits/stdlib.h \
- /usr/lib/gcc/arm-linux-gnueabihf/4.7/include-fixed/limits.h \
- /usr/lib/gcc/arm-linux-gnueabihf/4.7/include-fixed/syslimits.h \
+ /usr/include/alloca.h /usr/include/unistd.h \
+ /usr/include/arm-linux-gnueabihf/bits/posix_opt.h \
+ /usr/include/arm-linux-gnueabihf/bits/environments.h \
+ /usr/include/arm-linux-gnueabihf/bits/confname.h /usr/include/getopt.h \
+ /usr/include/arm-linux-gnueabihf/sys/ioctl.h \
+ /usr/include/arm-linux-gnueabihf/bits/ioctls.h \
+ /usr/include/arm-linux-gnueabihf/asm/ioctls.h \
+ /usr/include/asm-generic/ioctls.h /usr/include/linux/ioctl.h \
+ /usr/include/arm-linux-gnueabihf/asm/ioctl.h \
+ /usr/include/asm-generic/ioctl.h \
+ /usr/include/arm-linux-gnueabihf/bits/ioctl-types.h \
+ /usr/include/arm-linux-gnueabihf/sys/ttydefaults.h \
+ /usr/include/arm-linux-gnueabihf/sys/stat.h \
+ /usr/include/arm-linux-gnueabihf/bits/stat.h /usr/include/fcntl.h \
+ /usr/include/arm-linux-gnueabihf/bits/fcntl.h /usr/include/xorg/xf86.h \
+ /usr/include/xorg/xf86str.h /usr/include/xorg/misc.h \
+ /usr/include/X11/Xosdefs.h /usr/include/X11/Xfuncproto.h \
+ /usr/include/X11/Xmd.h /usr/include/X11/X.h /usr/include/X11/Xdefs.h \
+ /usr/lib/gcc/arm-linux-gnueabihf/4.6/include/stdint.h \
+ /usr/include/stdint.h /usr/include/arm-linux-gnueabihf/bits/wchar.h \
+ /usr/include/xorg/os.h /usr/include/string.h /usr/include/xlocale.h \
+ /usr/include/arm-linux-gnueabihf/bits/string.h \
+ /usr/include/arm-linux-gnueabihf/bits/string2.h \
+ /usr/include/xorg/Xprintf.h /usr/include/X11/Xfuncs.h \
+ /usr/lib/gcc/arm-linux-gnueabihf/4.6/include-fixed/limits.h \
+ /usr/lib/gcc/arm-linux-gnueabihf/4.6/include-fixed/syslimits.h \
  /usr/include/limits.h /usr/include/arm-linux-gnueabihf/bits/posix1_lim.h \
  /usr/include/arm-linux-gnueabihf/bits/local_lim.h \
  /usr/include/linux/limits.h \
@@ -66,66 +75,32 @@ disp_hwcursor.lo: disp_hwcursor.c ../config.h \
  /usr/include/X11/extensions/geproto.h /usr/include/X11/extensions/ge.h \
  /usr/include/X11/extensions/XI.h /usr/include/xorg/resource.h \
  /usr/include/xorg/dixaccess.h /usr/include/xorg/validate.h \
- /usr/include/xorg/pixmapstr.h /usr/include/xorg/damage.h \
- /usr/include/xorg/colormapst.h /usr/include/xorg/xf86Module.h \
- /usr/include/xorg/extension.h /usr/include/xorg/dixstruct.h \
- /usr/include/xorg/client.h /usr/include/xorg/xf86Opt.h \
+ /usr/include/xorg/pixmapstr.h /usr/include/xorg/colormapst.h \
+ /usr/include/xorg/xf86Module.h /usr/include/xorg/xf86Opt.h \
  /usr/include/xorg/xf86Optionstr.h /usr/include/inttypes.h \
- /usr/include/X11/extensions/randr.h /usr/include/xorg/propertyst.h \
- /usr/include/xorg/property.h /usr/include/pciaccess.h \
- /usr/include/xorg/xf86Cursor.h /usr/include/xorg/mipointer.h \
- disp_hwcursor.h fbdev_priv.h compat-api.h /usr/include/linux/fb.h \
- /usr/include/linux/types.h /usr/include/arm-linux-gnueabihf/asm/types.h \
+ /usr/include/xorg/propertyst.h /usr/include/xorg/property.h fbdev_priv.h \
+ compat-api.h /usr/include/linux/fb.h /usr/include/linux/types.h \
+ /usr/include/arm-linux-gnueabihf/asm/types.h \
  /usr/include/asm-generic/int-ll64.h \
  /usr/include/arm-linux-gnueabihf/asm/bitsperlong.h \
  /usr/include/asm-generic/bitsperlong.h /usr/include/linux/posix_types.h \
  /usr/include/linux/stddef.h \
  /usr/include/arm-linux-gnueabihf/asm/posix_types.h \
- /usr/include/asm-generic/posix_types.h /usr/include/linux/i2c.h \
- include/ipp.h include/rga.h /usr/include/xorg/xf86xv.h \
- /usr/include/xorg/xvdix.h /usr/include/X11/extensions/Xvproto.h \
- /usr/include/xorg/xf86fbman.h \
- /usr/include/arm-linux-gnueabihf/sys/ioctl.h \
- /usr/include/arm-linux-gnueabihf/bits/ioctls.h \
- /usr/include/arm-linux-gnueabihf/asm/ioctls.h \
- /usr/include/asm-generic/ioctls.h /usr/include/linux/ioctl.h \
- /usr/include/arm-linux-gnueabihf/asm/ioctl.h \
- /usr/include/asm-generic/ioctl.h \
- /usr/include/arm-linux-gnueabihf/bits/ioctl-types.h \
- /usr/include/arm-linux-gnueabihf/sys/ttydefaults.h /usr/include/fcntl.h \
- /usr/include/arm-linux-gnueabihf/bits/fcntl.h \
- /usr/include/arm-linux-gnueabihf/bits/stat.h \
- /usr/include/arm-linux-gnueabihf/bits/fcntl2.h /usr/include/unistd.h \
- /usr/include/arm-linux-gnueabihf/bits/posix_opt.h \
- /usr/include/arm-linux-gnueabihf/bits/environments.h \
- /usr/include/arm-linux-gnueabihf/bits/confname.h /usr/include/getopt.h \
- /usr/include/arm-linux-gnueabihf/bits/unistd.h
+ /usr/include/linux/i2c.h include/ipp.h include/rga.h \
+ /usr/include/xorg/xf86xv.h /usr/include/xorg/xvdix.h \
+ /usr/include/X11/extensions/Xvproto.h /usr/include/xorg/xf86fbman.h \
+ /usr/include/xorg/exa.h /usr/include/xorg/windowstr.h \
+ /usr/include/xorg/opaque.h /usr/include/xorg/globals.h \
+ /usr/include/xorg/gcstruct.h /usr/include/xorg/picturestr.h \
+ /usr/include/xorg/glyphstr.h /usr/include/X11/extensions/renderproto.h \
+ /usr/include/X11/extensions/render.h /usr/include/xorg/picture.h \
+ /usr/include/xorg/fb.h /usr/include/xorg/servermd.h \
+ /usr/include/xorg/mi.h /usr/include/X11/fonts/font.h \
+ /usr/include/X11/fonts/fsmasks.h /usr/include/xorg/migc.h \
+ /usr/include/xorg/mibstore.h /usr/include/xorg/fbrop.h \
+ /usr/include/xorg/micoord.h fb_exa.h
 
-../config.h:
-
-/usr/include/xorg/xorg-server.h:
-
-/usr/include/xorg/xf86.h:
-
-/usr/include/xorg/xf86str.h:
-
-/usr/include/xorg/misc.h:
-
-/usr/include/X11/Xosdefs.h:
-
-/usr/include/X11/Xfuncproto.h:
-
-/usr/include/X11/Xmd.h:
-
-/usr/include/X11/X.h:
-
-/usr/include/X11/Xdefs.h:
-
-/usr/lib/gcc/arm-linux-gnueabihf/4.7/include/stddef.h:
-
-/usr/lib/gcc/arm-linux-gnueabihf/4.7/include/stdint.h:
-
-/usr/include/stdint.h:
+/usr/include/stdio.h:
 
 /usr/include/features.h:
 
@@ -137,25 +112,7 @@ disp_hwcursor.lo: disp_hwcursor.c ../config.h \
 
 /usr/include/arm-linux-gnueabihf/gnu/stubs.h:
 
-/usr/include/arm-linux-gnueabihf/bits/wchar.h:
-
-/usr/include/xorg/os.h:
-
-/usr/lib/gcc/arm-linux-gnueabihf/4.7/include/stdarg.h:
-
-/usr/include/string.h:
-
-/usr/include/xlocale.h:
-
-/usr/include/arm-linux-gnueabihf/bits/string.h:
-
-/usr/include/arm-linux-gnueabihf/bits/string2.h:
-
-/usr/include/stdlib.h:
-
-/usr/include/arm-linux-gnueabihf/bits/string3.h:
-
-/usr/include/stdio.h:
+/usr/lib/gcc/arm-linux-gnueabihf/4.6/include/stddef.h:
 
 /usr/include/arm-linux-gnueabihf/bits/types.h:
 
@@ -167,17 +124,15 @@ disp_hwcursor.lo: disp_hwcursor.c ../config.h \
 
 /usr/include/wchar.h:
 
+/usr/lib/gcc/arm-linux-gnueabihf/4.6/include/stdarg.h:
+
 /usr/include/arm-linux-gnueabihf/bits/stdio_lim.h:
 
 /usr/include/arm-linux-gnueabihf/bits/sys_errlist.h:
 
 /usr/include/arm-linux-gnueabihf/bits/stdio.h:
 
-/usr/include/arm-linux-gnueabihf/bits/stdio2.h:
-
-/usr/include/xorg/Xprintf.h:
-
-/usr/include/X11/Xfuncs.h:
+/usr/include/stdlib.h:
 
 /usr/include/arm-linux-gnueabihf/bits/waitflags.h:
 
@@ -201,19 +156,87 @@ disp_hwcursor.lo: disp_hwcursor.c ../config.h \
 
 /usr/include/arm-linux-gnueabihf/bits/time.h:
 
-/usr/include/arm-linux-gnueabihf/bits/select2.h:
-
 /usr/include/arm-linux-gnueabihf/sys/sysmacros.h:
 
 /usr/include/arm-linux-gnueabihf/bits/pthreadtypes.h:
 
 /usr/include/alloca.h:
 
-/usr/include/arm-linux-gnueabihf/bits/stdlib.h:
+/usr/include/unistd.h:
 
-/usr/lib/gcc/arm-linux-gnueabihf/4.7/include-fixed/limits.h:
+/usr/include/arm-linux-gnueabihf/bits/posix_opt.h:
 
-/usr/lib/gcc/arm-linux-gnueabihf/4.7/include-fixed/syslimits.h:
+/usr/include/arm-linux-gnueabihf/bits/environments.h:
+
+/usr/include/arm-linux-gnueabihf/bits/confname.h:
+
+/usr/include/getopt.h:
+
+/usr/include/arm-linux-gnueabihf/sys/ioctl.h:
+
+/usr/include/arm-linux-gnueabihf/bits/ioctls.h:
+
+/usr/include/arm-linux-gnueabihf/asm/ioctls.h:
+
+/usr/include/asm-generic/ioctls.h:
+
+/usr/include/linux/ioctl.h:
+
+/usr/include/arm-linux-gnueabihf/asm/ioctl.h:
+
+/usr/include/asm-generic/ioctl.h:
+
+/usr/include/arm-linux-gnueabihf/bits/ioctl-types.h:
+
+/usr/include/arm-linux-gnueabihf/sys/ttydefaults.h:
+
+/usr/include/arm-linux-gnueabihf/sys/stat.h:
+
+/usr/include/arm-linux-gnueabihf/bits/stat.h:
+
+/usr/include/fcntl.h:
+
+/usr/include/arm-linux-gnueabihf/bits/fcntl.h:
+
+/usr/include/xorg/xf86.h:
+
+/usr/include/xorg/xf86str.h:
+
+/usr/include/xorg/misc.h:
+
+/usr/include/X11/Xosdefs.h:
+
+/usr/include/X11/Xfuncproto.h:
+
+/usr/include/X11/Xmd.h:
+
+/usr/include/X11/X.h:
+
+/usr/include/X11/Xdefs.h:
+
+/usr/lib/gcc/arm-linux-gnueabihf/4.6/include/stdint.h:
+
+/usr/include/stdint.h:
+
+/usr/include/arm-linux-gnueabihf/bits/wchar.h:
+
+/usr/include/xorg/os.h:
+
+/usr/include/string.h:
+
+/usr/include/xlocale.h:
+
+/usr/include/arm-linux-gnueabihf/bits/string.h:
+
+/usr/include/arm-linux-gnueabihf/bits/string2.h:
+
+/usr/include/xorg/Xprintf.h:
+
+/usr/include/X11/Xfuncs.h:
+
+/usr/lib/gcc/arm-linux-gnueabihf/4.6/include-fixed/limits.h:
+
+/usr/lib/gcc/arm-linux-gnueabihf/4.6/include-fixed/syslimits.h:
 
 /usr/include/limits.h:
 
@@ -307,17 +330,9 @@ disp_hwcursor.lo: disp_hwcursor.c ../config.h \
 
 /usr/include/xorg/pixmapstr.h:
 
-/usr/include/xorg/damage.h:
-
 /usr/include/xorg/colormapst.h:
 
 /usr/include/xorg/xf86Module.h:
-
-/usr/include/xorg/extension.h:
-
-/usr/include/xorg/dixstruct.h:
-
-/usr/include/xorg/client.h:
 
 /usr/include/xorg/xf86Opt.h:
 
@@ -325,19 +340,9 @@ disp_hwcursor.lo: disp_hwcursor.c ../config.h \
 
 /usr/include/inttypes.h:
 
-/usr/include/X11/extensions/randr.h:
-
 /usr/include/xorg/propertyst.h:
 
 /usr/include/xorg/property.h:
-
-/usr/include/pciaccess.h:
-
-/usr/include/xorg/xf86Cursor.h:
-
-/usr/include/xorg/mipointer.h:
-
-disp_hwcursor.h:
 
 fbdev_priv.h:
 
@@ -361,8 +366,6 @@ compat-api.h:
 
 /usr/include/arm-linux-gnueabihf/asm/posix_types.h:
 
-/usr/include/asm-generic/posix_types.h:
-
 /usr/include/linux/i2c.h:
 
 include/ipp.h:
@@ -377,40 +380,42 @@ include/rga.h:
 
 /usr/include/xorg/xf86fbman.h:
 
-/usr/include/arm-linux-gnueabihf/sys/ioctl.h:
+/usr/include/xorg/exa.h:
 
-/usr/include/arm-linux-gnueabihf/bits/ioctls.h:
+/usr/include/xorg/windowstr.h:
 
-/usr/include/arm-linux-gnueabihf/asm/ioctls.h:
+/usr/include/xorg/opaque.h:
 
-/usr/include/asm-generic/ioctls.h:
+/usr/include/xorg/globals.h:
 
-/usr/include/linux/ioctl.h:
+/usr/include/xorg/gcstruct.h:
 
-/usr/include/arm-linux-gnueabihf/asm/ioctl.h:
+/usr/include/xorg/picturestr.h:
 
-/usr/include/asm-generic/ioctl.h:
+/usr/include/xorg/glyphstr.h:
 
-/usr/include/arm-linux-gnueabihf/bits/ioctl-types.h:
+/usr/include/X11/extensions/renderproto.h:
 
-/usr/include/arm-linux-gnueabihf/sys/ttydefaults.h:
+/usr/include/X11/extensions/render.h:
 
-/usr/include/fcntl.h:
+/usr/include/xorg/picture.h:
 
-/usr/include/arm-linux-gnueabihf/bits/fcntl.h:
+/usr/include/xorg/fb.h:
 
-/usr/include/arm-linux-gnueabihf/bits/stat.h:
+/usr/include/xorg/servermd.h:
 
-/usr/include/arm-linux-gnueabihf/bits/fcntl2.h:
+/usr/include/xorg/mi.h:
 
-/usr/include/unistd.h:
+/usr/include/X11/fonts/font.h:
 
-/usr/include/arm-linux-gnueabihf/bits/posix_opt.h:
+/usr/include/X11/fonts/fsmasks.h:
 
-/usr/include/arm-linux-gnueabihf/bits/environments.h:
+/usr/include/xorg/migc.h:
 
-/usr/include/arm-linux-gnueabihf/bits/confname.h:
+/usr/include/xorg/mibstore.h:
 
-/usr/include/getopt.h:
+/usr/include/xorg/fbrop.h:
 
-/usr/include/arm-linux-gnueabihf/bits/unistd.h:
+/usr/include/xorg/micoord.h:
+
+fb_exa.h:

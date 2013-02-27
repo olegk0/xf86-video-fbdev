@@ -1,6 +1,4 @@
 /*
- * Copyright © 2013 Siarhei Siamashka <siarhei.siamashka@gmail.com>
- *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -21,27 +19,26 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef __DISP_HWCURSOR_H
-#define __DISP_HWCURSOR_H
+#ifndef __LAYER_H_
+#define __LAYER_H_
 
-#include "xf86Cursor.h"
-#include <inttypes.h>
+#include "include/ipp.h"
+#include "include/rga.h"
 
-#define FBIOPUT_SET_CURSOR_EN    0x4609
-#define FBIOPUT_SET_CURSOR_IMG    0x460a
-#define FBIOPUT_SET_CURSOR_POS    0x460b
-#define FBIOPUT_SET_CURSOR_CMAP    0x460c
+void InitHWAcl(ScreenPtr pScreen);
+void CloseHWAcl(ScreenPtr pScreen);
 
+int IppBlit(ScrnInfoPtr pScrn, struct rk29_ipp_req *ipp_req);
 
-typedef struct {
-    xf86CursorInfoPtr hwcursor;
-    int fd_fb;
-//    int cursor_enabled;
-//    int cursor_x, cursor_y;
+int RgaBlit(ScrnInfoPtr pScrn, struct rga_req *RGA_req, int syncmode);
 
-} Rk30DispHardwareCursor;
-
-Rk30DispHardwareCursor *Rk30DispHardwareCursor_Init(ScreenPtr pScreen, const char *device);
-void Rk30DispHardwareCursor_Close(ScreenPtr pScreen);
+int OvlSync(ScrnInfoPtr pScrn);
+int OvlSwDisp(ScrnInfoPtr pScrn, int disp, Bool clear);
+void OvlFillBuf(CARD32 *buf, unsigned int len, CARD32 color);
+void OvlClearBuf(ScrnInfoPtr pScrn, unsigned char pg);
+int OvlSetMode(ScrnInfoPtr pScrn, unsigned short xres, unsigned short yres, unsigned char mode);
+int OvlReset(ScrnInfoPtr pScrn);
+int OvlEnable(ScrnInfoPtr pScrn, int enable);
+int OvlFlushPg(ScrnInfoPtr pScrn, unsigned char pg, int mode);
 
 #endif

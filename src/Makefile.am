@@ -24,11 +24,11 @@
 # _ladir passes a dummy rpath to libtool so the thing will actually link
 # TODO: -nostdlib/-Bstatic/-lgcc platform magic, not installing the .a, etc.
 AM_CFLAGS = @XORG_CFLAGS@ -I/usr/include/libdrm
-fbdev_drv_la_LTLIBRARIES = fbdev_drv.la
-fbdev_drv_la_LDFLAGS = -module -avoid-version -lUMP -lpthread
-fbdev_drv_ladir = @moduledir@/drivers
+rk30fb_drv_la_LTLIBRARIES = rk30fb_drv.la
+rk30fb_drv_la_LDFLAGS = -module -avoid-version -lUMP -lpthread
+rk30fb_drv_ladir = @moduledir@/drivers
 
-fbdev_drv_la_SOURCES = \
+rk30fb_drv_la_SOURCES = \
          compat-api.h \
          fbdev.c \
          fbdev_priv.h \
@@ -37,4 +37,6 @@ fbdev_drv_la_SOURCES = \
          disp_hwcursor.c \
          disp_hwcursor.h \
          video.c \
-         video.h
+         video.h \
+         layer.c \
+         layer.h

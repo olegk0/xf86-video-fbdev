@@ -108,18 +108,18 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(fbdev_drv_ladir)"
-LTLIBRARIES = $(fbdev_drv_la_LTLIBRARIES)
-fbdev_drv_la_LIBADD =
-am_fbdev_drv_la_OBJECTS = fbdev.lo mali_dri2.lo video.lo\
-	disp_hwcursor.lo
-fbdev_drv_la_OBJECTS = $(am_fbdev_drv_la_OBJECTS)
+am__installdirs = "$(DESTDIR)$(rk30fb_drv_ladir)"
+LTLIBRARIES = $(rk30fb_drv_la_LTLIBRARIES)
+rk30fb_drv_la_LIBADD =
+am_rk30fb_drv_la_OBJECTS = fbdev.lo mali_dri2.lo disp_hwcursor.lo \
+	video.lo layer.lo
+rk30fb_drv_la_OBJECTS = $(am_rk30fb_drv_la_OBJECTS)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
-fbdev_drv_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+rk30fb_drv_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(fbdev_drv_la_LDFLAGS) $(LDFLAGS) -o $@
+	$(rk30fb_drv_la_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I. -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -146,8 +146,8 @@ am__v_CCLD_0 = @echo "  CCLD  " $@;
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
-SOURCES = $(fbdev_drv_la_SOURCES)
-DIST_SOURCES = $(fbdev_drv_la_SOURCES)
+SOURCES = $(rk30fb_drv_la_SOURCES)
+DIST_SOURCES = $(rk30fb_drv_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -156,7 +156,7 @@ am__can_run_installinfo = \
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-ACLOCAL = ${SHELL} /usr/src/video/my/xf86-video-fbdev/missing --run aclocal-1.11
+ACLOCAL = ${SHELL} /usr/src/video/my/back/3/xf86-video-fbdev/missing --run aclocal-1.11
 ADMIN_MAN_DIR = $(mandir)/man$(ADMIN_MAN_SUFFIX)
 ADMIN_MAN_SUFFIX = 8
 AMTAR = $${TAR-tar}
@@ -164,9 +164,9 @@ AM_DEFAULT_VERBOSITY = 0
 APP_MAN_DIR = $(mandir)/man$(APP_MAN_SUFFIX)
 APP_MAN_SUFFIX = 1
 AR = ar
-AUTOCONF = ${SHELL} /usr/src/video/my/xf86-video-fbdev/missing --run autoconf
-AUTOHEADER = ${SHELL} /usr/src/video/my/xf86-video-fbdev/missing --run autoheader
-AUTOMAKE = ${SHELL} /usr/src/video/my/xf86-video-fbdev/missing --run automake-1.11
+AUTOCONF = ${SHELL} /usr/src/video/my/back/3/xf86-video-fbdev/missing --run autoconf
+AUTOHEADER = ${SHELL} /usr/src/video/my/back/3/xf86-video-fbdev/missing --run autoheader
+AUTOMAKE = ${SHELL} /usr/src/video/my/back/3/xf86-video-fbdev/missing --run automake-1.11
 AWK = mawk
 BASE_CFLAGS =  -Wall -Wpointer-arith -Wmissing-declarations -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes -Wnested-externs -Wbad-function-cast -Wold-style-definition -Wdeclaration-after-statement -Wunused -Wuninitialized -Wshadow -Wcast-qual -Wmissing-noreturn -Wmissing-format-attribute -Wredundant-decls -Werror=implicit -Werror=nonnull -Werror=init-self -Werror=main -Werror=missing-braces -Werror=sequence-point -Werror=return-type -Werror=trigraphs -Werror=array-bounds -Werror=write-strings -Werror=address -Werror=int-to-pointer-cast -Werror=pointer-to-int-cast
 CC = gcc -std=gnu99
@@ -210,8 +210,8 @@ LIB_MAN_SUFFIX = 3
 LIPO = 
 LN_S = ln -s
 LTLIBOBJS = 
-MAINT = #
-MAKEINFO = ${SHELL} /usr/src/video/my/xf86-video-fbdev/missing --run makeinfo
+MAINT = 
+MAKEINFO = ${SHELL} /usr/src/video/my/back/3/xf86-video-fbdev/missing --run makeinfo
 MANIFEST_TOOL = :
 MAN_SUBSTS = 	-e 's|__vendorversion__|"$(PACKAGE_STRING)" "$(XORG_MAN_PAGE)"|' 	-e 's|__xorgversion__|"$(PACKAGE_STRING)" "$(XORG_MAN_PAGE)"|' 	-e 's|__xservername__|Xorg|g' 	-e 's|__xconfigfile__|xorg.conf|g' 	-e 's|__projectroot__|$(prefix)|g' 	-e 's|__apploaddir__|$(appdefaultdir)|g' 	-e 's|__appmansuffix__|$(APP_MAN_SUFFIX)|g' 	-e 's|__drivermansuffix__|$(DRIVER_MAN_SUFFIX)|g' 	-e 's|__adminmansuffix__|$(ADMIN_MAN_SUFFIX)|g' 	-e 's|__libmansuffix__|$(LIB_MAN_SUFFIX)|g' 	-e 's|__miscmansuffix__|$(MISC_MAN_SUFFIX)|g' 	-e 's|__filemansuffix__|$(FILE_MAN_SUFFIX)|g'
 MISC_MAN_DIR = $(mandir)/man$(MISC_MAN_SUFFIX)
@@ -246,10 +246,10 @@ VERSION = 0.4.3
 XORG_CFLAGS = -fvisibility=hidden -I/usr/include/pixman-1 -I/usr/include/xorg  
 XORG_LIBS =  
 XORG_MAN_PAGE = X Version 11
-abs_builddir = /usr/src/video/my/xf86-video-fbdev/src
-abs_srcdir = /usr/src/video/my/xf86-video-fbdev/src
-abs_top_builddir = /usr/src/video/my/xf86-video-fbdev
-abs_top_srcdir = /usr/src/video/my/xf86-video-fbdev
+abs_builddir = /usr/src/video/my/back/3/xf86-video-fbdev/src
+abs_srcdir = /usr/src/video/my/back/3/xf86-video-fbdev/src
+abs_top_builddir = /usr/src/video/my/back/3/xf86-video-fbdev
+abs_top_srcdir = /usr/src/video/my/back/3/xf86-video-fbdev
 ac_ct_AR = ar
 ac_ct_CC = gcc
 ac_ct_DUMPBIN = 
@@ -278,7 +278,7 @@ host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /usr/src/video/my/xf86-video-fbdev/install-sh
+install_sh = ${SHELL} /usr/src/video/my/back/3/xf86-video-fbdev/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -306,10 +306,10 @@ top_srcdir = ..
 # _ladir passes a dummy rpath to libtool so the thing will actually link
 # TODO: -nostdlib/-Bstatic/-lgcc platform magic, not installing the .a, etc.
 AM_CFLAGS = -fvisibility=hidden -I/usr/include/pixman-1 -I/usr/include/xorg   -I/usr/include/libdrm
-fbdev_drv_la_LTLIBRARIES = fbdev_drv.la
-fbdev_drv_la_LDFLAGS = -module -avoid-version -lUMP -lpthread
-fbdev_drv_ladir = ${exec_prefix}/lib/xorg/modules/drivers
-fbdev_drv_la_SOURCES = \
+rk30fb_drv_la_LTLIBRARIES = rk30fb_drv.la
+rk30fb_drv_la_LDFLAGS = -module -avoid-version -lUMP -lpthread
+rk30fb_drv_ladir = ${exec_prefix}/lib/xorg/modules/drivers
+rk30fb_drv_la_SOURCES = \
          compat-api.h \
          fbdev.c \
          fbdev_priv.h \
@@ -318,13 +318,15 @@ fbdev_drv_la_SOURCES = \
          disp_hwcursor.c \
          disp_hwcursor.h \
          video.c \
-         video.h
+         video.h \
+         layer.c \
+         layer.h
 
 all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
-$(srcdir)/Makefile.in: # $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -349,45 +351,45 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure: # $(am__configure_deps)
+$(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4): # $(am__aclocal_m4_deps)
+$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-fbdev_drv_laLTLIBRARIES: $(fbdev_drv_la_LTLIBRARIES)
+install-rk30fb_drv_laLTLIBRARIES: $(rk30fb_drv_la_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
-	@list='$(fbdev_drv_la_LTLIBRARIES)'; test -n "$(fbdev_drv_ladir)" || list=; \
+	@list='$(rk30fb_drv_la_LTLIBRARIES)'; test -n "$(rk30fb_drv_ladir)" || list=; \
 	list2=; for p in $$list; do \
 	  if test -f $$p; then \
 	    list2="$$list2 $$p"; \
 	  else :; fi; \
 	done; \
 	test -z "$$list2" || { \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(fbdev_drv_ladir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(fbdev_drv_ladir)" || exit 1; \
-	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(fbdev_drv_ladir)'"; \
-	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(fbdev_drv_ladir)"; \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(rk30fb_drv_ladir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(rk30fb_drv_ladir)" || exit 1; \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(rk30fb_drv_ladir)'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(rk30fb_drv_ladir)"; \
 	}
 
-uninstall-fbdev_drv_laLTLIBRARIES:
+uninstall-rk30fb_drv_laLTLIBRARIES:
 	@$(NORMAL_UNINSTALL)
-	@list='$(fbdev_drv_la_LTLIBRARIES)'; test -n "$(fbdev_drv_ladir)" || list=; \
+	@list='$(rk30fb_drv_la_LTLIBRARIES)'; test -n "$(rk30fb_drv_ladir)" || list=; \
 	for p in $$list; do \
 	  $(am__strip_dir) \
-	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(fbdev_drv_ladir)/$$f'"; \
-	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(fbdev_drv_ladir)/$$f"; \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(rk30fb_drv_ladir)/$$f'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(rk30fb_drv_ladir)/$$f"; \
 	done
 
-clean-fbdev_drv_laLTLIBRARIES:
-	-test -z "$(fbdev_drv_la_LTLIBRARIES)" || rm -f $(fbdev_drv_la_LTLIBRARIES)
-	@list='$(fbdev_drv_la_LTLIBRARIES)'; for p in $$list; do \
+clean-rk30fb_drv_laLTLIBRARIES:
+	-test -z "$(rk30fb_drv_la_LTLIBRARIES)" || rm -f $(rk30fb_drv_la_LTLIBRARIES)
+	@list='$(rk30fb_drv_la_LTLIBRARIES)'; for p in $$list; do \
 	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
 	  test "$$dir" != "$$p" || dir=.; \
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
-fbdev_drv.la: $(fbdev_drv_la_OBJECTS) $(fbdev_drv_la_DEPENDENCIES) $(EXTRA_fbdev_drv_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(fbdev_drv_la_LINK) -rpath $(fbdev_drv_ladir) $(fbdev_drv_la_OBJECTS) $(fbdev_drv_la_LIBADD) $(LIBS)
+rk30fb_drv.la: $(rk30fb_drv_la_OBJECTS) $(rk30fb_drv_la_DEPENDENCIES) $(EXTRA_rk30fb_drv_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(rk30fb_drv_la_LINK) -rpath $(rk30fb_drv_ladir) $(rk30fb_drv_la_OBJECTS) $(rk30fb_drv_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -395,8 +397,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-include ./$(DEPDIR)/fbdev.Plo
 include ./$(DEPDIR)/disp_hwcursor.Plo
+include ./$(DEPDIR)/fbdev.Plo
+include ./$(DEPDIR)/layer.Plo
 include ./$(DEPDIR)/mali_dri2.Plo
 include ./$(DEPDIR)/video.Plo
 
@@ -513,7 +516,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(LTLIBRARIES)
 installdirs:
-	for dir in "$(DESTDIR)$(fbdev_drv_ladir)"; do \
+	for dir in "$(DESTDIR)$(rk30fb_drv_ladir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -548,7 +551,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-fbdev_drv_laLTLIBRARIES clean-generic clean-libtool \
+clean-am: clean-generic clean-libtool clean-rk30fb_drv_laLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
@@ -569,7 +572,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-fbdev_drv_laLTLIBRARIES
+install-data-am: install-rk30fb_drv_laLTLIBRARIES
 
 install-dvi: install-dvi-am
 
@@ -615,24 +618,23 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-fbdev_drv_laLTLIBRARIES
+uninstall-am: uninstall-rk30fb_drv_laLTLIBRARIES
 
 .MAKE: install-am install-strip
 
-.PHONY: CTAGS GTAGS all all-am check check-am clean \
-	clean-fbdev_drv_laLTLIBRARIES clean-generic clean-libtool \
-	ctags distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-fbdev_drv_laLTLIBRARIES install-html \
+.PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
+	clean-libtool clean-rk30fb_drv_laLTLIBRARIES ctags distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
 	install-html-am install-info install-info-am install-man \
 	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags uninstall uninstall-am \
-	uninstall-fbdev_drv_laLTLIBRARIES
+	install-rk30fb_drv_laLTLIBRARIES install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags uninstall uninstall-am uninstall-rk30fb_drv_laLTLIBRARIES
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

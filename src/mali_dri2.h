@@ -3,9 +3,9 @@
 
 typedef struct {
 	int	drm_fd;
-} SunxiMaliDRI2;
+} Rk30MaliDRI2;
 
-SunxiMaliDRI2 *SunxiMaliDRI2_Init(ScreenPtr pScreen);
-void SunxiMaliDRI2_Close(ScreenPtr pScreen);
+Rk30MaliDRI2 *Rk30MaliDRI2_Init(ScreenPtr pScreen);
+void Rk30MaliDRI2_Close(ScreenPtr pScreen);
 
 #endif

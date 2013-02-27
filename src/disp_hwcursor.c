@@ -38,38 +38,34 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define FBIOPUT_SET_CURSOR_EN    0x4609
-#define FBIOPUT_SET_CURSOR_IMG    0x460a
-#define FBIOPUT_SET_CURSOR_POS    0x460b
-#define FBIOPUT_SET_CURSOR_CMAP    0x460c
-
 static void ShowCursor(ScrnInfoPtr pScrn)
 {
-    SunxiDispHardwareCursor *ctx = SUNXI_DISP_HWC(pScrn);
+    Rk30DispHardwareCursor *ctx = RK30_DISP_HWC(pScrn);
     int en = 1;
     ioctl(ctx->fd_fb, FBIOPUT_SET_CURSOR_EN, &en);
 }
 
 static void HideCursor(ScrnInfoPtr pScrn)
 {
-    SunxiDispHardwareCursor *ctx = SUNXI_DISP_HWC(pScrn);
+    Rk30DispHardwareCursor *ctx = RK30_DISP_HWC(pScrn);
     int en = 0;
     ioctl(ctx->fd_fb, FBIOPUT_SET_CURSOR_EN, &en);
 }
 
 static void SetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 {
-    SunxiDispHardwareCursor *ctx = SUNXI_DISP_HWC(pScrn);
+    Rk30DispHardwareCursor *ctx = RK30_DISP_HWC(pScrn);
     struct fbcurpos pos;
 
     pos.x = x;
     pos.y = y;
+
     
     if (pos.x < 0)
         pos.x = 0;
     if (pos.y < 0)
         pos.y = 0;
-    
+
     if (ioctl(ctx->fd_fb, FBIOPUT_SET_CURSOR_POS, &pos) >= 0) {
 //        ctx->cursor_x = pos.x;
 //        ctx->cursor_y = pos.y;
@@ -79,7 +75,7 @@ static void SetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 static void SetCursorColors(ScrnInfoPtr pScrn, int bg, int fg)
 {
 struct fb_image img;
-    SunxiDispHardwareCursor *ctx = SUNXI_DISP_HWC(pScrn);
+    Rk30DispHardwareCursor *ctx = RK30_DISP_HWC(pScrn);
     img.bg_color = bg;
     img.fg_color = fg;
     ioctl(ctx->fd_fb, FBIOPUT_SET_CURSOR_CMAP, &img);
@@ -87,7 +83,7 @@ struct fb_image img;
 
 static void LoadCursorImage(ScrnInfoPtr pScrn, unsigned char *bits)
 {
-    SunxiDispHardwareCursor *ctx = SUNXI_DISP_HWC(pScrn);
+    Rk30DispHardwareCursor *ctx = RK30_DISP_HWC(pScrn);
     ioctl(ctx->fd_fb, FBIOPUT_SET_CURSOR_IMG, bits);
 }
 
@@ -96,10 +92,10 @@ static void LoadCursorImage(ScrnInfoPtr pScrn, unsigned char *bits)
  * four 32-bit ARGB entries in the palette.                                  *
  *****************************************************************************/
 
-SunxiDispHardwareCursor *SunxiDispHardwareCursor_Init(ScreenPtr pScreen, const char *device)
+Rk30DispHardwareCursor *Rk30DispHardwareCursor_Init(ScreenPtr pScreen, const char *device)
 {
     xf86CursorInfoPtr InfoPtr;
-    SunxiDispHardwareCursor *private;
+    Rk30DispHardwareCursor *private;
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
 
     if (!(InfoPtr = xf86CreateCursorInfoRec())) {
@@ -123,7 +119,7 @@ SunxiDispHardwareCursor *SunxiDispHardwareCursor_Init(ScreenPtr pScreen, const c
         return NULL;
     }
 
-    private = calloc(1, sizeof(SunxiDispHardwareCursor));
+    private = calloc(1, sizeof(Rk30DispHardwareCursor));
     if (!private) {
         ErrorF("DispHardwareCursor_Init: calloc failed\n");
         xf86DestroyCursorInfoRec(InfoPtr);
@@ -147,10 +143,10 @@ SunxiDispHardwareCursor *SunxiDispHardwareCursor_Init(ScreenPtr pScreen, const c
     return private;
 }
 
-void SunxiDispHardwareCursor_Close(ScreenPtr pScreen)
+void Rk30DispHardwareCursor_Close(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    SunxiDispHardwareCursor *private = SUNXI_DISP_HWC(pScrn);
+    Rk30DispHardwareCursor *private = RK30_DISP_HWC(pScrn);
     if (private) {
 	close(private->fd_fb);
         xf86DestroyCursorInfoRec(private->hwcursor);

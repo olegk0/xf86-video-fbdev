@@ -1,27 +1,22 @@
 /*
- * For rk3066 with the modified kernel
- * Author: olegk0 <olegvedi@gmail.com>
+
+ *  For rk3066 with the modified kernel
+ *  Author: olegk0 <olegvedi@gmail.com>
  *
- * based on XFree86 4.x driver for S3 chipsets (Ani Joshi <ajoshi@unixbox.com>)
+ *  based on XFree86 4.x driver for S3 chipsets (Ani Joshi <ajoshi@unixbox.com>)
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <unistd.h>
@@ -35,15 +30,22 @@
 #include "os.h"
 
 #include "video.h"
+#include "layer.h"
 #include "rk3066.h"
 #include "fbdev_priv.h"
 #include <sys/mman.h>
+
+#ifdef DEBUG
+#define XVDBG(format, args...)		xf86DrvMsg(pScrn->scrnIndex, X_INFO, format, ## args)
+#else
+#define XVDBG(format, args...)
+#endif
 
 #define XVPORTS 1
 #define PAGE_MASK    (getpagesize() - 1)
 
 static XF86VideoEncodingRec DummyEncoding[1] = {
-   {0, "XV_IMAGE", 1280, 720, {1, 1}}
+   {0, "XV_IMAGE", 1920, 1080, {1, 1}}
 };
 
 static XF86VideoFormatRec Formats[] = {
@@ -60,193 +62,277 @@ XF86ImageRec Images[] = {
 };
 
 //-------------------------------------------------------------------
-static void clear_buf(unsigned char *buf, CARD32 len)
-{
-    while(len>0){
-	len--;
-	buf[len] = 0;
-    }
-}
-
-static void free_ovl_memory(ScrnInfoPtr pScrn)
+static void initRGAreq(ScrnInfoPtr pScrn,/* unsigned short width, unsigned short height,*/ unsigned short vir_w,
+					    unsigned short vir_h, unsigned int InFrmt, unsigned int OutFrmt)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
-    OvlHWPtr	overlay = pMxv->overlay;
-    int errno;
+    XVPortPrivPtr XVport = pMxv->XVport;
+    struct rga_req *RGA_req,*RGA_req1;
 
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Try unmap \n");
-    if (overlay->fbmem != NULL){
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "fbmem!=NULL \n");
-        clear_buf(overlay->fbmem, overlay->fbmem_len);
-	errno = munmap(overlay->fbmem, overlay->fbmem_len);
-        if(errno == 0)
-	    overlay->fbmem = NULL;
-//xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Err fbmem unmap:%d \n", errno);
-    }
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Unmaped \n");
-}
+    RGA_req = &XVport->RGA_req;
+    RGA_req1 = &XVport->RGA_req1;
+//    OvlHWPtr overlay = pMxv->OvlHW;
 
-static Bool alloc_ovl_memory(ScrnInfoPtr pScrn, unsigned int  size)
-{
-    FBDevPtr pMxv = FBDEVPTR(pScrn);
-    OvlHWPtr	overlay = pMxv->overlay;
-//    unsigned int len, start, offset;
-    unsigned int yuv_phy[2];
+    memset(RGA_req, 0, sizeof(struct rga_req));
+    memset(RGA_req1, 0, sizeof(struct rga_req));
+//Src
+//    RGA_req->src.yrgb_addr = srcyaddr;
+//    RGA_req->src.uv_addr  = uv_addr;
+//    RGA_req->src.v_addr   = v_addr;
+//    RGA_req->src.vir_w = width;
+//    RGA_req->src.vir_h = height;
+    RGA_req->src.format = InFrmt;
+//    RGA_req->src.act_w = width;
+//    RGA_req->src.act_h = height;
+//    RGA_req->src.x_offset = 0;
+//    RGA_req->src.y_offset = 0;
+//Dst
+//    RGA_req->dst.yrgb_addr = dstyaddr;
+//    RGA_req->dst.uv_addr  = 0;
+//    RGA_req->dst.v_addr   = 0;
+    RGA_req->dst.vir_w = vir_w;
+    RGA_req->dst.vir_h = vir_h;
+    RGA_req->dst.format = OutFrmt;
 
-    if (overlay == NULL)	return FALSE;
-    if(overlay->fbmem != NULL)	return TRUE;
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Try mmap \n");
-//    if(len < size)	return FALSE;
-    overlay->fbmem_len = overlay->fix.smem_len;
-    overlay->fbmio_len = (overlay->fbmem_len >> 1) & ~PAGE_MASK;
+    RGA_req1->dst.vir_w = vir_w;
+    RGA_req1->dst.vir_h = vir_h;
+    RGA_req1->dst.format = OutFrmt;
+//    RGA_req->clip.xmin = 0;
+    RGA_req->clip.xmax = RGA_req->dst.vir_w-1;
+    RGA_req1->clip.xmax = RGA_req1->dst.vir_w-1;
+//    RGA_req->clip.ymin = 0;
+    RGA_req->clip.ymax = RGA_req->dst.vir_h-1;
+    RGA_req1->clip.ymax = RGA_req1->dst.vir_h-1;
+//    RGA_req->dst.act_w = width;
+//    RGA_req->dst.act_h = height;//1/2 
+//    RGA_req->dst.x_offset = 0;//drw_x & ~3;
+//    RGA_req->dst.y_offset = 0;//drw_y & ~3;
 
-    overlay->fbmem = mmap( NULL, overlay->fbmem_len, PROT_READ | PROT_WRITE,
-					     MAP_SHARED, overlay->ovl_fd, 0);
-    if ( -1 == (long)overlay->fbmem ){
-        xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Error mmap fb1_mem, fbmem_len:%X offset:0\n",overlay->fbmem_len);
-        overlay->fbmem = NULL;
-	return FALSE;
-    }
-//xf86DrvMsg( pScrn->scrnIndex, X_INFO, "mmaped fb1_mem\n");
-    overlay->fbmio = overlay->fbmem + overlay->fbmio_len;
-    clear_buf(overlay->fbmem, overlay->fbmem_len);
-    yuv_phy[0] = overlay->fix.smem_start;  //four y
-    yuv_phy[1] = overlay->fix.smem_start + overlay->fbmio_len;  //four uv
-    ioctl(overlay->ovl_fd, FBIOSET_YUV_ADDR, &yuv_phy);
-
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Mmaped \n");
-    return TRUE;
-}
-//---------------------------------------------------------------------
-static void XVDisplayVideoOverlay(ScrnInfoPtr pScrn, int mode)
-{
-    FBDevPtr pMxv = FBDEVPTR(pScrn);
-//    XVPortPrivPtr pPriv = pMxv->XVportPrivate;
-    OvlHWPtr	overlay = pMxv->overlay;
-
-  msync(overlay->fbmem,overlay->fbmem_len, mode);
+//    RGA_req->yuv2rgb_mode=2;           /* (enum) BT.601 MPEG / BT.601 JPEG / BT.709  */ 
+//    RGA_req->sina = 0;
+//    RGA_req->cosa = 0;
+//Ctl
+/*    bitblt_mode               = 0x0,
+    color_palette_mode        = 0x1,
+    color_fill_mode           = 0x2,
+    line_point_drawing_mode   = 0x3,
+    blur_sharp_filter_mode    = 0x4,
+    pre_scaling_mode          = 0x5,
+    update_palette_table_mode = 0x6,
+    update_patten_buff_mode   = 0x7,
+*/
+//    RGA_req->render_mode = 5;
+//    RGA_req->scale_mode = 0;          // 0 nearst / 1 bilnear / 2 bicubic     
+//    RGA_req->rotate_mode = 0;
 }
 //----------------------------------------------------
-Bool XVInitStreams(ScrnInfoPtr pScrn, char FlScr, short drw_w, short drw_h, short width, short height, int id)
+static void initIPPreq(ScrnInfoPtr pScrn, unsigned int dst_vir_w, unsigned int width, unsigned int height,
+			 /*unsigned int drw_w, unsigned int drw_h,*/ unsigned int format)
+{
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
+    XVPortPrivPtr XVport = pMxv->XVport;
+    struct rk29_ipp_req *ipp_req;
+
+    ipp_req = &XVport->IPP_req;
+    memset(ipp_req, 0, sizeof(struct rk29_ipp_req));
+
+//    ipp_req->src0.YrgbMst = src_addr;
+//    ipp_req->src0.CbrMst = overlay->phadr_mem[3];	// image CbCr address
+    ipp_req->src0.w = width;
+    ipp_req->src0.h = height;
+    ipp_req->src0.fmt = format;
+//IPP_XRGB_8888
+//	IPP_RGB_565 =1 ,
+//	IPP_Y_CBCR_H2V1 = 2,  //yuv 422sp
+//	IPP_Y_CBCR_H2V2 = 3, //yuv 420sp
+//	IPP_Y_CBCR_H1V1 =6, //yuv 444sp
+//    ipp_req->dst0.YrgbMst = overlay->phadr_mem[0] + ((XVport->offset << 2)& ~3);
+//    ipp_req->dst0.CbrMst = 0; //four uv
+//    ipp_req->dst0.w = drw_w;
+//    ipp_req->dst0.h = drw_h;
+    ipp_req->dst0.fmt = ipp_req->src0.fmt;
+    ipp_req->src_vir_w = width;
+    ipp_req->dst_vir_w = dst_vir_w;
+    ipp_req->timeout = 100;
+    ipp_req->flag = IPP_ROT_0;
+}
+//-----------------------------------------------------------------
+static Bool XVInitStreams(ScrnInfoPtr pScrn, Bool FlScr, short drw_x, short drw_y, short drw_w,
+						short drw_h, short width, short height, int id)
 {       
     FBDevPtr pMxv = FBDEVPTR(pScrn);
-    OvlHWPtr	overlay = pMxv->overlay;
-    int tmp;
-    CARD32 tres, Nwidth;
+    OvlHWPtr overlay = pMxv->OvlHW;
+    XVPortPrivPtr XVport = pMxv->XVport;
+    CARD32 tres, Nwidth, mode, xres, yres, inRGAmode,outRGAmode, IPPmode;
 
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Try setup overlay \n");
-    if( 0 != ioctl(overlay->fb_fd, FBIOGET_VSCREENINFO, &overlay->var)) return FALSE;
-    memcpy(&overlay->saved_var, &overlay->var, sizeof(struct fb_var_screeninfo));
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "overlay call aloc\n");
-    if(!alloc_ovl_memory(pScrn, 1))	return FALSE;
+    XVDBG("Try setup overlay \n");
 
     switch(id) {
     case FOURCC_YV12:
+//	inRGAmode = RK_FORMAT_YCbCr_420_P;
     case FOURCC_I420:
-	overlay->var.nonstd = YCrCb_NV12;
-        break; 
+//	mode = YCrCb_NV12;
+//	if(id == FOURCC_I420)
+	    inRGAmode = RK_FORMAT_YCbCr_420_P;
+//	outRGAmode = RK_FORMAT_YCrCb_420_SP;
+	IPPmode = IPP_Y_CBCR_H2V2;
+        break;
     case FOURCC_UYVY:
+//	inRGAmode = RK_FORMAT_YCrCb_422_P;
     case FOURCC_YUY2:
-	overlay->var.nonstd = YCbCr_422_SP;
+//	mode = YCbCr_422_SP;
+	inRGAmode = RK_FORMAT_YCrCb_422_SP;
+	IPPmode = IPP_Y_CBCR_H2V1;
 	break;
     default:
-	overlay->var.nonstd = RGB_888;
+	mode = RGBX_8888;
+	inRGAmode = RK_FORMAT_RGBX_8888;
+//	outRGAmode = RK_FORMAT_RGBX_8888;
+	IPPmode = IPP_XRGB_8888;
     }
-//YCrCb_444
-//RGB_565
-//RGBA_8888
+
     if(FlScr){// fullscreen
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "overlay fullscr\n");
-	tres = (overlay->var.yres * width) / overlay->var.xres;
+	XVDBG("overlay fullscr\n");
+	tres = (overlay->saved_var.yres * width) / overlay->saved_var.xres;
 //	tres = (drw_h * width)/drw_w;
-	if((tres <= overlay->var.yres)&&(tres >= height)){//[=]
-	    overlay->var.xres = width;
-	    overlay->var.yres = tres;
-	    overlay->var.yres = (overlay->var.yres>>1)<<1;
-	    overlay->offset = (((overlay->var.yres - height)>>1)& ~1)*overlay->var.xres_virtual;
-	    overlay->flmmode = 'w';
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "overlay wide\n");
+	if((tres <= overlay->saved_var.yres)&&(tres >= height)){//[=]
+	    XVDBG("overlay wide\n");
+	    xres = width;
+	    yres = (tres-0)& ~1;
+	    XVport->x_drv = 0;
+	    XVport->y_drv = (drw_y * yres) / overlay->saved_var.yres;
 	}
 	else{//[||]
-	    tres = (overlay->var.xres * height) / overlay->var.yres;
-	    Nwidth = ((drw_w * height) / drw_h + 1)& ~1;// from drw window
-	    if(Nwidth > overlay->var.xres_virtual) Nwidth = overlay->var.xres_virtual;
-	    tres = tres*width / Nwidth; // scale by x
-	    overlay->var.yres = height;
-	    overlay->var.xres = tres & ~1;
-	    overlay->var.xres = (overlay->var.xres>>1)<<1;
-	    if(overlay->var.xres > width)
-		overlay->offset =  (overlay->var.xres - width) >> 1;
-	    else
-		overlay->offset =  0;
-	    overlay->flmmode = 'n';
+	    tres = (overlay->saved_var.xres * height) / overlay->saved_var.yres;
+	    Nwidth = ((drw_w * height) / drw_h)& ~1;// from drw window
+	    if(Nwidth > overlay->saved_var.xres_virtual) Nwidth = overlay->saved_var.xres_virtual;
+	    tres = tres * width / Nwidth; // scale by x
+	    yres = height;
+	    xres = (tres-0) & ~1;
+	    XVport->x_drv = (drw_x * xres) / overlay->saved_var.xres;
+	    XVport->y_drv = 0;
 	}
-	overlay->npixels = width;
-	overlay->nlines = height;
+	outRGAmode = RK_FORMAT_RGB_888;
+	mode = RGB_888;
     }
     else{
-	if(drw_h > height)	overlay->nlines = height;//cliping
-	else	overlay->nlines = drw_h;
-	if(drw_w > width)	overlay->npixels = width;
-	else	overlay->npixels = drw_w;
+	xres = overlay->saved_var.xres;
+	yres = overlay->saved_var.yres;
+	mode = RGBX_8888;
+	outRGAmode = RK_FORMAT_RGBX_8888;
     }
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "overlay try set res - x:%d, y:%d ---- nlin:%d, npix:%d, offset:%d, mode:%d\n",overlay->var.xres,overlay->var.yres,overlay->nlines,overlay->npixels,overlay->offset,overlay->var.nonstd);
-    if( 0 != ioctl(overlay->ovl_fd, FBIOPUT_VSCREENINFO, &overlay->var)) return FALSE;
-    tmp = 0;
-    ioctl(overlay->fb_fd, FBIOSET_OVERLAY_STATE, &tmp);
-    tmp = 1;
-    ioctl(overlay->ovl_fd, FBIOSET_ENABLE, &tmp);
-    overlay->pixels = (overlay->var.xres_virtual + 10) * overlay->nlines;
-// overlay->var.xres * overlay->var.yres;
-    overlay->offset = (overlay->offset>>1)<<1;
+    OvlEnable(pScrn, 0);
+    XVDBG("overlay try set res - x:%d, y:%d ---- width:%d, heigth:%d, mode:%d\n",xres,yres,width,height,mode);
+    if( OvlSetMode(pScrn, xres, yres, mode)) return FALSE;
+//    OvlSwDisp(pScrn, 1, TRUE);
+//    OvlClearBuf(pScrn, 1);
+    OvlClearBuf(pScrn, 0);
+    OvlFlushPg(pScrn, 0, MS_SYNC);
+    OvlEnable(pScrn, 1);
+
+    initRGAreq(pScrn, overlay->var.xres_virtual, yres, inRGAmode, outRGAmode);
+    initIPPreq(pScrn, width, width, height, IPPmode);
+
     return TRUE;
 }
 
-void
-XVCopyYUV12ToFb(const void *srcy, const void *srcv, const void *srcu, void *dst_Y,
-                        void *dst_UV, int srcPitch, int dstPitch, int h, int w)
+//-----------------------------------------------------------------
+int VFillReg(ScrnInfoPtr pScrn, RegionPtr clipBoxes, /*int numbuf*/CARD32 yrgb_addr, CARD32 color)
 {
-    CARD32 *Dst_UV, *Dst_Y, srcPitchUV;
-    const CARD32 *Y;
-    const CARD8 *U, *V;
-    int i, j;
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
+    XVPortPrivPtr XVport = pMxv->XVport;
+    OvlHWPtr overlay = pMxv->OvlHW;
 
-    srcPitchUV = srcPitch >> 1;
-    w = (w & ~3) >> 2;
-    h = h & ~1;
-    for (j = 0; j < h; j++) {
-        Y = srcy;
-        Dst_Y = dst_Y;
-        i = w;
-        while (i > 0) {
-            Dst_Y[0] = Y[0];
-            Dst_Y++;
-            Y++;
-            i--;
-        }
-        dst_Y = (CARD8 *) dst_Y + dstPitch;
-        srcy = (const CARD8 *) srcy + srcPitch;
+    unsigned int x,y,dx,dy,dv,x1,y1;
+    CARD32 *buf;
 
-        if(j & 1){
-    	    i = w;
-    	    V = srcv;
-    	    U = srcu;
-    	    Dst_UV = dst_UV;
-    	    while (i > 0) {
-        	Dst_UV[0] = U[0] | (V[0] << 8) | (U[1] << 16) | (V[1] << 24);
-        	Dst_UV++;
-        	V+=2;
-        	U+=2;
-        	i--;
-    	    }
-    	    dst_UV = (CARD8 *) dst_UV + dstPitch;
-    	    srcu = (const CARD8 *) srcu + srcPitchUV;
-    	    srcv = (const CARD8 *) srcv + srcPitchUV;
-	}
+//    if(clipBoxes->extents.x1 > 2) x1 = clipBoxes->extents.x1-2;
+//    else x1 = 0;
+//    if(clipBoxes->extents.y1 > 2) y1 = clipBoxes->extents.y1-2;
+//    else y1 = 0;
+
+/*    buf = (CARD32 *)overlay->fb_mem[numbuf];
+    dv = clipBoxes->extents.x1 + clipBoxes->extents.y1 * overlay->var.xres_virtual;
+    buf = (CARD32 *) buf + dv;
+    dx = clipBoxes->extents.x2 - clipBoxes->extents.x1;// + 4;
+    dy = clipBoxes->extents.y2 - clipBoxes->extents.y1;// + 4;
+    for(y = 0;y <= dy;y++){
+        for(x = 0;x <= dx;x++)
+	    buf[x] = color;
+	buf = (CARD32 *) buf + overlay->var.xres_virtual;
     }
-}
+    OvlFlushPg(pScrn, numbuf, MS_ASYNC);*/
+    struct rga_req *RGA_req;
 
-void
+    RGA_req = &XVport->RGA_req1;
+//Dst
+    RGA_req->dst.format = RK_FORMAT_RGBX_8888;
+    RGA_req->dst.yrgb_addr = yrgb_addr;
+//    RGA_req->dst.uv_addr  = uv_addr;
+//    RGA_req->dst.v_addr   = v_addr;
+    RGA_req->dst.act_w = clipBoxes->extents.x2 - clipBoxes->extents.x1+1;
+    RGA_req->dst.act_h =  clipBoxes->extents.y2 - clipBoxes->extents.y1+1;
+    RGA_req->dst.x_offset = clipBoxes->extents.x1;
+    RGA_req->dst.y_offset = clipBoxes->extents.y1;
+//Ctl
+    RGA_req->render_mode = color_fill_mode;
+    RGA_req->fg_color = color;
+//    uint32_t bg_color;
+//    RGA_req->scale_mode = 0;          // 0 nearst / 1 bilnear / 2 bicubic     
+//    RGA_req->rotate_mode = 0;
+    return RgaBlit(pScrn, RGA_req, RGA_BLIT_SYNC);
+
+}
+//---------------------------------------------------
+static void VChFrmt(ScrnInfoPtr pScrn, unsigned int srcyaddr, unsigned int uv_addr, unsigned int v_addr,
+	 unsigned int dstyaddr, unsigned int dstuvaddr, unsigned short drw_x, unsigned short drw_y,
+	 unsigned short drw_w, unsigned short drw_h)
+{
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
+    XVPortPrivPtr XVport = pMxv->XVport;
+    struct rga_req *RGA_req;
+
+    RGA_req = &XVport->RGA_req;
+
+    RGA_req->src.yrgb_addr = srcyaddr;
+    RGA_req->src.uv_addr  = uv_addr;
+    RGA_req->src.v_addr   = v_addr;
+    RGA_req->dst.yrgb_addr = dstyaddr;
+    RGA_req->dst.uv_addr  = dstuvaddr;
+
+    RGA_req->src.vir_w = drw_w;
+    RGA_req->src.vir_h = drw_h;
+    RGA_req->src.act_w = drw_w;
+    RGA_req->src.act_h = drw_h;
+    RGA_req->dst.act_w = drw_w;
+    RGA_req->dst.act_h = drw_h;//1/2 
+
+    RGA_req->dst.x_offset = drw_x;
+    RGA_req->dst.y_offset = drw_y;
+
+    RgaBlit(pScrn, RGA_req, RGA_BLIT_SYNC);
+}
+//-----------------------------------------------------------------
+static void VScale(ScrnInfoPtr pScrn, unsigned int src_Yaddr, unsigned int src_UVaddr, unsigned int dst_Yaddr,
+					 unsigned int dst_UVaddr, unsigned short drw_w, unsigned short drw_h)
+{
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
+    XVPortPrivPtr XVport = pMxv->XVport;
+    struct rk29_ipp_req *ipp_req;
+
+    ipp_req = &XVport->IPP_req;
+    ipp_req->src0.YrgbMst = src_Yaddr;
+    ipp_req->src0.CbrMst = src_UVaddr;
+    ipp_req->dst0.YrgbMst = dst_Yaddr;
+    ipp_req->dst0.CbrMst = dst_UVaddr;
+    ipp_req->dst0.w = drw_w;
+    ipp_req->dst0.h = drw_h;
+    ipp_req->dst_vir_w = drw_w;
+
+    IppBlit(pScrn, ipp_req);
+}
+//-----------------------------------------------------------------
+static void
 XVCopyPackedToFb(const void *src, void *dst_Y, void *dst_UV, CARD32 dst_offset,
 	    int srcPitch, int dstPitch, int h, int w, unsigned char isYUY2)
 {
@@ -290,7 +376,7 @@ XVCopyPackedToFb(const void *src, void *dst_Y, void *dst_UV, CARD32 dst_offset,
 	h--;
     }
 }
-
+//-----------------------------------------------------------------
 static int XVPutImage(ScrnInfoPtr pScrn,
           short src_x, short src_y, short drw_x, short drw_y,
           short src_w, short src_h, short drw_w, short drw_h,
@@ -298,16 +384,13 @@ static int XVPutImage(ScrnInfoPtr pScrn,
           Bool sync, RegionPtr clipBoxes, pointer data )
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
-    XVPortPrivPtr pPriv = pMxv->XVportPrivate;
+    XVPortPrivPtr XVport= pMxv->XVport;
+    OvlHWPtr overlay = pMxv->OvlHW;
     CARD32 x1, x2, y1, y2;
-    CARD32 dst_offset;
-    CARD32 offset2=0, offset3=0, offset_c;
-    CARD32 srcPitch, dstPitch;
-//    CARD32 top, left, npixels, nlines;
+    CARD32 drw_offset,offset, offset2=0, offset3=0;
     BoxRec dstBox;
     CARD32 tmp;
-    OvlHWPtr	overlay = pMxv->overlay;
-    char isYUY2 = 0, FlScr=0;
+    Bool isYUY2 = FALSE, FlScr = FALSE, ClipEq = FALSE;
     
    /* Clip */
    x1 = src_x;
@@ -323,83 +406,118 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     if(!xf86XVClipVideoHelper(&dstBox, &x1, &x2, &y1, &y2, clipBoxes, width, height))
 	return Success;
     if((clipBoxes->extents.x1 == 0)||(clipBoxes->extents.y1 == 0))
-	FlScr = 1;
-    if(pPriv->videoStatus == 0){
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "video params  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d\n",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height);
-xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "video params clipBoxes x1=%d,x2=%d,y1=%d,y2=%d\n",clipBoxes->extents.x1,clipBoxes->extents.x2,clipBoxes->extents.y1,clipBoxes->extents.y2);
-	if(!XVInitStreams(pScrn, FlScr, drw_w, drw_h, width, height, image))
+	FlScr = TRUE;
+    if(REGION_EQUAL(pScrn->pScreen, &XVport->clip, clipBoxes))
+//    if(XVport->clip.extents.x1 == clipBoxes->extents.x1 && XVport->clip.extents.x2 == clipBoxes->extents.x2 &&
+//	XVport->clip.extents.y1 == clipBoxes->extents.y1 && XVport->clip.extents.y2 == clipBoxes->extents.y2)
+	ClipEq = TRUE;
+//    else
+//	if(XVport->videoStatus == CLIENT_VIDEO_CH)
+//	    XVport->videoStatus = 0;
+
+//    if(XVport->videoStatus == 0){
+    if(XVport->videoStatus < CLIENT_VIDEO_ON){
+	XVDBG("video params  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d\n",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height);
+	XVDBG("video params clipBoxes x1=%d,x2=%d,y1=%d,y2=%d\n",clipBoxes->extents.x1,clipBoxes->extents.x2,clipBoxes->extents.y1,clipBoxes->extents.y2);
+	if(!XVInitStreams(pScrn, FlScr, drw_x, drw_y, drw_w, drw_h, src_w, src_h, image))
 	    return BadAlloc;
-	pPriv->videoStatus = CLIENT_VIDEO_INIT;
+	XVport->videoStatus = CLIENT_VIDEO_INIT;
+        REGION_COPY(pScrn->pScreen, &XVport->clip, clipBoxes);
     }
-//    pitch = pScrn->bitsPerPixel * pScrn->displayWidth >> 3;
-//   new_h = ((dstPitch * height) + pitch - 1) / pitch;
-    dstPitch = overlay->var.xres_virtual;
-    srcPitch = width;
-   switch(image) {
-   case FOURCC_YV12:
-   case FOURCC_I420:
-        offset2 = width * height;
-        offset3 = ((width >> 1) * (height >> 1)) + offset2;
-        break;
-   case FOURCC_UYVY:
-   case FOURCC_YUY2:
-//	srcPitch = width << 1; //1px - 2 bytes
+
+    drw_h = drw_h & ~7;
+    drw_w = drw_w & ~7;
+
+//	offset = width * height;
+	offset = src_w * src_h;
+	if(!FlScr){ //not fullscreen
+	    drw_offset = drw_w * drw_h;
+    	    offset2 = ((drw_offset)+PAGE_MASK)& ~PAGE_MASK;
+    	    offset3 = (((drw_offset >> 2) + offset2));
+	    drw_offset = offset2;
+	}
+	else{
+    	    offset2 = offset & ~1;
+    	    offset3 = ((offset2 >> 2) + offset2) & ~1;
+	}
+
+    switch(image) {
+    case FOURCC_YV12:
+    case FOURCC_I420:
 	break;
-/*   default:
-	dstPitch = overlay->var.xres_virtual;
-        srcPitch = width;*/
-   }
-    /* copy data */
-    if(!FlScr){ //not fullscreen
-	offset_c = overlay->var.xres_virtual * (drw_y & ~1);
-	overlay->offset = offset_c + drw_x;
+    case FOURCC_UYVY:
+    case FOURCC_YUY2:
+	break;
     }
+
     switch(image) {
     case FOURCC_I420:
         tmp = offset2;
         offset2 = offset3;
         offset3 = tmp;
     case FOURCC_YV12:
-/*        top &= ~1;    
-        tmp = ((top >> 1) * srcPitch2) + (left >> 2);
-        offset2 += tmp;
-      offset3 += tmp;
-*/
+
+	memcpy(overlay->fb_mem[3],buf,offset+(offset>>1));
+	OvlFlushPg(pScrn, 3, MS_SYNC);
 	if(FlScr){ // fullscreen
-	    if(overlay->flmmode == 'n')//[||]
-		offset_c = overlay->offset;
-	    else//[=] w
-		offset_c = overlay->offset >> 1;
+	    OvlSync(pScrn);
+	    VChFrmt(pScrn, overlay->phadr_mem[3], overlay->phadr_mem[3]+offset2, overlay->phadr_mem[3]+offset3,
+		    overlay->phadr_mem[0], 0, XVport->x_drv, XVport->y_drv, src_w, src_h);
 	}
 	else
-	    offset_c = (offset_c >> 1)  + drw_x;
-//	overlay->offset = overlay->offset;
-	offset_c = offset_c & ~1;
-        XVCopyYUV12ToFb(buf, buf + offset2, buf + offset3,
-		 overlay->fbmem + overlay->offset, overlay->fbmio + offset_c,
-		 srcPitch, dstPitch, overlay->nlines, overlay->npixels);
+	{
+	    VScale(pScrn, overlay->phadr_mem[3], overlay->phadr_mem[3]+offset, overlay->phadr_mem[2],
+					    	overlay->phadr_mem[2]+drw_offset,drw_w, drw_h);
+	    OvlSync(pScrn);
+	    VChFrmt(pScrn,overlay->phadr_mem[2],overlay->phadr_mem[2]+offset2,
+	    overlay->phadr_mem[2]+offset3, overlay->phadr_mem[0],0,drw_x,drw_y,drw_w,drw_h);
+	}
         break; 
     case FOURCC_YUY2:
-	isYUY2 = 1;
+	isYUY2 = TRUE;
     case FOURCC_UYVY:
-//        buf += (top * srcPitch) + left;
-//	if(overlay->fbmem_len < (overlay->pixels << 1))
-//overlay->offset = 0;
-	overlay->offset = overlay->offset & ~1;
-	    XVCopyPackedToFb(buf, overlay->fbmem, overlay->fbmio, overlay->offset, srcPitch, dstPitch,
-		     overlay->nlines, overlay->npixels, isYUY2);
+	XVCopyPackedToFb(buf, overlay->fb_mem[3], overlay->fb_mem[3]+offset, 0, src_w, src_w,
+								     src_h, src_w, isYUY2);
+	OvlFlushPg(pScrn, 3, MS_SYNC);
+	if(FlScr){ // fullscreen
+	    OvlSync(pScrn);
+	    VChFrmt(pScrn, overlay->phadr_mem[3], overlay->phadr_mem[3]+offset,0,
+		    overlay->phadr_mem[0], 0, XVport->x_drv, XVport->y_drv, src_w, src_h);
+	}
+	else
+	{
+	    VScale(pScrn, overlay->phadr_mem[3], overlay->phadr_mem[3]+offset, overlay->phadr_mem[2],
+					    	overlay->phadr_mem[2]+drw_offset,drw_w, drw_h);
+	    OvlSync(pScrn);
+	    VChFrmt(pScrn,overlay->phadr_mem[2],overlay->phadr_mem[2]+drw_offset,
+	    0, overlay->phadr_mem[0],0,drw_x,drw_y,drw_w,drw_h);
+	}
+
         break;
 //    default:
     }
-    /* update cliplist */
-       if(!REGION_EQUAL(pScrn->pScreen, &pPriv->clip, clipBoxes)) {
-            REGION_COPY(pScrn->pScreen, &pPriv->clip, clipBoxes);
-            /* draw these */
-        xf86XVFillKeyHelper(pScrn->pScreen, pPriv->colorKey, clipBoxes);
-        }
-    XVDisplayVideoOverlay(pScrn, MS_ASYNC);
-    pPriv->videoStatus = CLIENT_VIDEO_ON;
+/*    if(!FlScr){
+	OvlSwDisp(pScrn, 0, FALSE);
+	VClrReg(pScrn, &XVport->clip, overlay->ShadowPg);
+    }
+*/
+    // update cliplist 
+       if(!ClipEq || (XVport->videoStatus != CLIENT_VIDEO_ON)) {
+	    if(!FlScr){
+	OvlClearBuf(pScrn, 0);
+        OvlFlushPg(pScrn, 0, MS_ASYNC);
+//		OvlSync(pScrn);
+//		VFillReg(pScrn, &XVport->clip, overlay->phadr_mem[0], 0);
 
+	    }
+//	    else
+//		OvlFillBuf((CARD32 *)overlay->fb_mem[0],overlay->pg_len >> 2 , 0x00010101);
+//		VFillReg(pScrn, &XVport->clip, 0, 0);
+            REGION_COPY(pScrn->pScreen, &XVport->clip, clipBoxes);
+            // draw these 
+    	    xf86XVFillKeyHelper(pScrn->pScreen, XVport->colorKey, clipBoxes);
+        }
+    XVport->videoStatus = CLIENT_VIDEO_ON;
     return Success;
 }       
 
@@ -407,24 +525,20 @@ xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "video params clipBoxes x1=%d,x2=%d,y1=%d
 static void XVStopVideo(ScrnInfoPtr pScrn, pointer data, Bool exit)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
-    XVPortPrivPtr pPriv = pMxv->XVportPrivate;
-    OvlHWPtr	overlay = pMxv->overlay;
+    XVPortPrivPtr XVport = pMxv->XVport;
     int tmp;
 
-    REGION_EMPTY(pScrn->pScreen, &pPriv->clip);
-//xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Stop video \n");
-    clear_buf(overlay->fbmem, overlay->fbmem_len);
-    pPriv->videoStatus = 0;
-
+    XVport->videoStatus = CLIENT_VIDEO_CH;
     if (exit) {
-//xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Exit video \n");
-	free_ovl_memory(pScrn);
-	ioctl(overlay->ovl_fd, FBIOPUT_VSCREENINFO, &overlay->saved_var);
-//    tmp = 1;
-//    ioctl(overlay->fb_fd, FBIOSET_ENABLE, &tmp);
-	tmp = 0;
-	ioctl(overlay->ovl_fd, FBIOSET_ENABLE, &tmp);
-//	pPriv->videoStatus = 0;
+	XVDBG("video exit\n");
+        XVport->videoStatus = 0;
+	REGION_EMPTY(pScrn->pScreen, &XVport->clip);
+	OvlReset(pScrn);
+    }
+    else{
+	XVDBG("video stop\n");
+	OvlClearBuf(pScrn, 0);
+//	OvlClearBuf(pScrn, 1);
     }
 }
 
@@ -471,7 +585,7 @@ XVQueryBestSize(ScrnInfoPtr pScrn, Bool motion,
 		 unsigned int *retW, unsigned int *retH, pointer data)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
-    OvlHWPtr	overlay = pMxv->overlay;
+    OvlHWPtr	overlay = pMxv->OvlHW;
 
     if(drawW > overlay->saved_var.xres)
 	*retW = overlay->saved_var.xres;
@@ -502,30 +616,30 @@ static XF86VideoAdaptorPtr XVAllocAdaptor(ScrnInfoPtr pScrn)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     XF86VideoAdaptorPtr adapt = NULL;
-    XVPortPrivPtr pPriv = NULL;
+    XVPortPrivPtr XVport = NULL;
     int i;
 
 	if(!(adapt = xf86XVAllocateVideoAdaptorRec(pScrn)))
     	    return NULL;
 
-	if(!(pPriv = calloc(1, sizeof(XVPortPrivRec)+(sizeof(DevUnion) * XVPORTS))))
+	if(!(XVport = calloc(1, sizeof(XVPortPrivRec)+(sizeof(DevUnion) * XVPORTS))))
 	{
 	    free(adapt);//xfree
 	    adapt = NULL;
-	    pPriv = NULL;
+	    XVport = NULL;
     	    return NULL;
 	}
-	adapt->pPortPrivates = (DevUnion*)(&pPriv[1]);
+	adapt->pPortPrivates = (DevUnion*)(&XVport[1]);
 
 	for(i = 0; i < XVPORTS; i++)
     	    adapt->pPortPrivates[i].val = i;
 
-    pPriv->colorKey = 0;
-    pPriv->videoStatus = 0;
-    pPriv->lastPort = -1;
+    XVport->colorKey = 0x00020202;
+    XVport->videoStatus = 0;
+    XVport->lastPort = -1;
 
 //    pMxv->adaptor = adapt;
-    pMxv->XVportPrivate = pPriv;
+    pMxv->XVport = XVport;
 
     return adapt;
 }
@@ -545,12 +659,12 @@ XVInitAdaptor(ScreenPtr pScreen)
 	adapt->name = "RK30";
 	adapt->nEncodings = 1;
         adapt->pEncodings = &DummyEncoding[0];
-	adapt->nFormats = ARRAY_SIZE(Formats);
+	adapt->nFormats = LARRAY_SIZE(Formats);
 	adapt->pFormats = Formats;
 	adapt->nPorts = XVPORTS;// nums ports
 	adapt->nAttributes = 0;
 	adapt->pAttributes = NULL;
-	adapt->nImages = ARRAY_SIZE(Images);
+	adapt->nImages = LARRAY_SIZE(Images);
 	adapt->pImages = Images;
 
 	adapt->PutVideo = NULL;
@@ -566,65 +680,33 @@ XVInitAdaptor(ScreenPtr pScreen)
 	adapt->QueryBestSize = XVQueryBestSize;
 	adapt->QueryImageAttributes = XVQueryImageAttributes;
 	adapt->PutImage = XVPutImage;
+    REGION_NULL(pScreen, &(pMxv->XVport->clip));
     }
-    REGION_NULL(pScreen, &(pMxv->XVportPrivate->clip));
-
     return adapt;
-}
-
-Bool init_ovl(ScreenPtr pScreen)
-{
-    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    FBDevPtr pMxv = FBDEVPTR(pScrn);
-    OvlHWPtr		overlay = NULL;
-    int tmp;
-
-    if(!(overlay = calloc(1, sizeof(OvlHWRec) )))
-	return FALSE;
-
-    overlay->fbmem = NULL;
-    overlay->fbmio = NULL;
-
-    overlay->ovl_fd = open("/dev/fb1", O_RDWR);
-    if (overlay->ovl_fd < 0) goto err;
-
-    overlay->fb_fd = open("/dev/fb0", O_RDWR);
-    if (overlay->ovl_fd < 0) goto err1;
-
-    if( 0 == ioctl(overlay->ovl_fd, FBIOGET_FSCREENINFO, &overlay->fix))
-    if(overlay->fix.smem_start != 0)
-    if(0 == ioctl(overlay->fb_fd, FBIOGET_VSCREENINFO, &overlay->var)){
-	overlay->var.activate = 0;
-	memcpy(&overlay->saved_var, &overlay->var, sizeof(struct fb_var_screeninfo));
-	ioctl(overlay->ovl_fd, FBIOPUT_VSCREENINFO, &overlay->var);
-	ioctl(overlay->ovl_fd, FBIOBLANK, FB_BLANK_UNBLANK);
-	tmp=0;
-	ioctl(overlay->fb_fd, FBIOSET_OVERLAY_STATE, &tmp);
-	tmp=0;
-	ioctl(overlay->ovl_fd, FBIOSET_ENABLE, &tmp);
-        pMxv->overlay = overlay;
-	return TRUE;
-    }
-    close(overlay->fb_fd);
-err1:
-    close(overlay->ovl_fd);
-err:
-    free(overlay);
-    return FALSE;
 }
 
 void
 InitXVideo(ScreenPtr pScreen)
 {
-   ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
     XF86VideoAdaptorPtr *adaptors, *newAdaptors = NULL;
     XF86VideoAdaptorPtr newAdaptor = NULL;
     int num_adaptors;
 
-    if(!init_ovl(pScreen)){
-	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "XV:Error init ovl\n");
+    if(NULL == pMxv->OvlHW){
+	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "XV:Not found overlay\n");
 	return;
     }
+    if(NULL == pMxv->IPPHW){
+	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "XV:Not found ipp\n");
+	return;
+    }
+    if(NULL == pMxv->RGAHW){
+	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Not found rga\n");
+	return;
+    }
+
     newAdaptor = XVInitAdaptor(pScreen);
 
     if (newAdaptor == NULL){
@@ -665,22 +747,14 @@ CloseXVideo(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     FBDevPtr pMxv = FBDEVPTR(pScrn);
-    OvlHWPtr	overlay = pMxv->overlay;
 
-    if(overlay != NULL){
-	free_ovl_memory(pScrn);
-        close(overlay->ovl_fd);
-	close(overlay->fb_fd);
-        free(overlay);
-	overlay = NULL;
-    }
 /*    if(pMxv->adaptor != NULL){
 	 free(pMxv->adaptor);
 	pMxv->adaptor = NULL;
     }*/
-    if(pMxv->XVportPrivate != NULL){
-	free(pMxv->XVportPrivate);
-	pMxv->XVportPrivate = NULL;
+    if(pMxv->XVport != NULL){
+	free(pMxv->XVport);
+	pMxv->XVport = NULL;
     }
 xf86DrvMsg( pScrn->scrnIndex, X_INFO, "XV:Closed\n");
 }

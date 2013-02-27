@@ -30,6 +30,7 @@
 /* for visuals */
 #include "fb.h"
 #include "rk3066.h"
+#include "layer.h"
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -46,14 +47,13 @@
 #include "compat-api.h"
 
 static Bool debug = 1;
-#define DEBUG 1
 
 #define TRACE_ENTER(str) \
-    do { if (debug) ErrorF("fbdev: " str " %d\n",pScrn->scrnIndex); } while (0)
+    do { if (debug) ErrorF("rk30fb: " str " %d\n",pScrn->scrnIndex); } while (0)
 #define TRACE_EXIT(str) \
-    do { if (debug) ErrorF("fbdev: " str " done\n"); } while (0)
+    do { if (debug) ErrorF("rk30fb: " str " done\n"); } while (0)
 #define TRACE(str) \
-    do { if (debug) ErrorF("fbdev trace: " str "\n"); } while (0)
+    do { if (debug) ErrorF("rk30fb trace: " str "\n"); } while (0)
 
 /* -------------------------------------------------------------------- */
 /* prototypes                                                           */
@@ -84,8 +84,8 @@ enum { FBDEV_ROTATE_NONE=0, FBDEV_ROTATE_CW=270, FBDEV_ROTATE_UD=180, FBDEV_ROTA
 static int pix24bpp = 0;
 
 #define FBDEV_VERSION		4000
-#define FBDEV_NAME		"FBDEV"
-#define FBDEV_DRIVER_NAME	"fbdev"
+#define FBDEV_NAME		"RK30FB"
+#define FBDEV_DRIVER_NAME	"rk30fb"
 
 _X_EXPORT DriverRec FBDEV = {
 	FBDEV_VERSION,
@@ -103,7 +103,7 @@ _X_EXPORT DriverRec FBDEV = {
 
 /* Supported "chipsets" */
 static SymTabRec FBDevChipsets[] = {
-    { 0, "fbdev" },
+    { 0, "rk30fb" },
     {-1, NULL }
 };
 
@@ -133,7 +133,7 @@ MODULESETUPPROTO(FBDevSetup);
 
 static XF86ModuleVersionInfo FBDevVersRec =
 {
-	"fbdev",
+	"rk30fb",
 	MODULEVENDORSTRING,
 	MODINFOSTRING1,
 	MODINFOSTRING2,
@@ -145,7 +145,7 @@ static XF86ModuleVersionInfo FBDevVersRec =
 	{0,0,0,0}
 };
 
-_X_EXPORT XF86ModuleData fbdevModuleData = { &FBDevVersRec, FBDevSetup, NULL };
+_X_EXPORT XF86ModuleData rk30fbModuleData = { &FBDevVersRec, FBDevSetup, NULL };
 
 pointer
 FBDevSetup(pointer module, pointer opts, int *errmaj, int *errmin)
@@ -270,7 +270,7 @@ FBDevProbe(DriverPtr drv, int flags)
 //IAM
 Bool FBDevHWSetMode(ScrnInfoPtr pScrn, FBDevPtr fPtr)
 {
- int depth, bpp, fd;
+ int depth, bpp, fd, tmp;
  struct fb_var_screeninfo tvar;
  const char *device;
 
@@ -286,7 +286,6 @@ Bool FBDevHWSetMode(ScrnInfoPtr pScrn, FBDevPtr fPtr)
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "ioctl FBIOGET_VSCREENINFO\n");
         goto err1;
     }
-
     device = xf86FindOptionValue(fPtr->pEnt->device->options,"HWbpp");
     if(device == NULL)
 	depth = 32;
@@ -299,8 +298,9 @@ Bool FBDevHWSetMode(ScrnInfoPtr pScrn, FBDevPtr fPtr)
     tvar.green.offset = 8;
     tvar.blue.length = 8;
     tvar.blue.offset = 0;
-    tvar.transp.length = 8;
-    tvar.transp.offset = 24;
+    tvar.transp.length = 0;
+    tvar.transp.offset = 0;
+
     bpp = 32;
     switch (depth){
 /*	case 16:
@@ -326,13 +326,21 @@ Bool FBDevHWSetMode(ScrnInfoPtr pScrn, FBDevPtr fPtr)
 	default:
 	    tvar.nonstd = RGBX_8888;
     }
+
+    tmp=1;
+    ioctl(fd, FBIOSET_ENABLE, &tmp);
+
+//    tvar.activate = 1;
     tvar.bits_per_pixel = bpp;
-    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "RK30: Setup for depth:%d\n", depth);
-    if (0 != ioctl(fd, FBIOPUT_VSCREENINFO, (void *) (&tvar))) {
+
+    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "RK30: Setup for depth:%d\n", bpp);
+    if (-1 == ioctl(fd, FBIOPUT_VSCREENINFO, (void *) (&tvar))) {
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "ioctl FBIOPUT_VSCREENINFO\n");
         goto err1;
     }
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "RK30: Setup nonstd mode completed\n");
+
+    close(fd);
     return TRUE;
 err1:
     close(fd);
@@ -406,7 +414,7 @@ FBDevPreInit(ScrnInfoPtr pScrn, int flags)
 
 	pScrn->progClock = TRUE;
 	pScrn->rgbBits   = 8;
-	pScrn->chipset   = "fbdev";
+	pScrn->chipset   = "rk30fb";
 	pScrn->videoRam  = fbdevHWGetVidmem(pScrn);
 
 	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "hardware: %s (video memory:"
@@ -603,7 +611,7 @@ FBDevScreenInit(SCREEN_INIT_ARGS_DECL)
 
 	TRACE_ENTER("FBDevScreenInit");
 
-#if DEBUG
+#ifdef DEBUG
 	ErrorF("\tbitsPerPixel=%d, depth=%d, defaultVisual=%s\n"
 	       "\tmask: %x,%x,%x, offset: %d,%d,%d\n",
 	       pScrn->bitsPerPixel,
@@ -836,14 +844,16 @@ FBDevScreenInit(SCREEN_INIT_ARGS_DECL)
 	fPtr->CloseScreen = pScreen->CloseScreen;
 	pScreen->CloseScreen = FBDevCloseScreen;
 
+	InitHWAcl(pScreen);
+//	SetupExa(pScreen);
 #if XV
 	InitXVideo(pScreen);
 #endif
 
-	fPtr->SunxiDispHardwareCursor_private = SunxiDispHardwareCursor_Init(
+	fPtr->Rk30DispHardwareCursor_private = Rk30DispHardwareCursor_Init(
             pScreen, xf86FindOptionValue(fPtr->pEnt->device->options,"fbdev"));
 
-	fPtr->SunxiMaliDRI2_private = SunxiMaliDRI2_Init(pScreen);
+	fPtr->Rk30MaliDRI2_private = Rk30MaliDRI2_Init(pScreen);
 
 	TRACE_EXIT("FBDevScreenInit");
 
@@ -856,16 +866,16 @@ FBDevCloseScreen(CLOSE_SCREEN_ARGS_DECL)
 	ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
 	FBDevPtr fPtr = FBDEVPTR(pScrn);
 
-	if (fPtr->SunxiMaliDRI2_private) {
-	    SunxiMaliDRI2_Close(pScreen);
-	    free(fPtr->SunxiMaliDRI2_private);
-	    fPtr->SunxiMaliDRI2_private = NULL;
+	if (fPtr->Rk30MaliDRI2_private) {
+	    Rk30MaliDRI2_Close(pScreen);
+	    free(fPtr->Rk30MaliDRI2_private);
+	    fPtr->Rk30MaliDRI2_private = NULL;
 	}
 
-	if (fPtr->SunxiDispHardwareCursor_private) {
-	    SunxiDispHardwareCursor_Close(pScreen);
-	    free(fPtr->SunxiDispHardwareCursor_private);
-	    fPtr->SunxiDispHardwareCursor_private = NULL;
+	if (fPtr->Rk30DispHardwareCursor_private) {
+	    Rk30DispHardwareCursor_Close(pScreen);
+	    free(fPtr->Rk30DispHardwareCursor_private);
+	    fPtr->Rk30DispHardwareCursor_private = NULL;
 	}
 
 
@@ -886,9 +896,10 @@ FBDevCloseScreen(CLOSE_SCREEN_ARGS_DECL)
 	pScreen->CreateScreenResources = fPtr->CreateScreenResources;
 	pScreen->CloseScreen = fPtr->CloseScreen;
 
-	if (fPtr->XVportPrivate) {
+	if (fPtr->XVport) {
 	    CloseXVideo(pScreen);
 	}
+	CloseHWAcl(pScreen);
 
 	return (*pScreen->CloseScreen)(CLOSE_SCREEN_ARGS);
 }

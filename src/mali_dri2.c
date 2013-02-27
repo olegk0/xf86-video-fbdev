@@ -157,7 +157,7 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     ump_cache_operations_control(UMP_CACHE_OP_FINISH);
 }
 
-SunxiMaliDRI2 *SunxiMaliDRI2_Init(ScreenPtr pScreen)
+Rk30MaliDRI2 *Rk30MaliDRI2_Init(ScreenPtr pScreen)
 {
     int drm_fd;
     DRI2InfoRec info;
@@ -166,19 +166,19 @@ SunxiMaliDRI2 *SunxiMaliDRI2_Init(ScreenPtr pScreen)
         return FALSE;
 
     if ((drm_fd = drmOpen("mali_drm", NULL)) < 0) {
-        ErrorF("SunxiMaliDRI2_Init: drmOpen failed!\n");
+        ErrorF("Rk30MaliDRI2_Init: drmOpen failed!\n");
         return FALSE;
     }
 
     if (ump_open() != UMP_OK) {
         drmClose(drm_fd);
-        ErrorF("SunxiMaliDRI2_Init: ump_open() != UMP_OK\n");
+        ErrorF("Rk30MaliDRI2_Init: ump_open() != UMP_OK\n");
         return FALSE;
     }
 
     info.version = 3;
 
-    info.driverName = "sunxi-mali";
+    info.driverName = "rk30-mali";
     info.deviceName = "/dev/dri/card0";
     info.fd = drm_fd;
 
@@ -191,16 +191,16 @@ SunxiMaliDRI2 *SunxiMaliDRI2_Init(ScreenPtr pScreen)
         return NULL;
     }
     else {
-        SunxiMaliDRI2 *private = calloc(1, sizeof(SunxiMaliDRI2));
+        Rk30MaliDRI2 *private = calloc(1, sizeof(Rk30MaliDRI2));
         private->drm_fd = drm_fd;
         return private;
     }
 }
 
-void SunxiMaliDRI2_Close(ScreenPtr pScreen)
+void Rk30MaliDRI2_Close(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    SunxiMaliDRI2 *private = SUNXI_MALI_DRI2(pScrn);
+    Rk30MaliDRI2 *private = RK30_MALI_DRI2(pScrn);
     if (private) {
         drmClose(private->drm_fd);
     }
