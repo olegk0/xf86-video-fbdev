@@ -55,10 +55,20 @@ static void HideCursor(ScrnInfoPtr pScrn)
 static void SetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 {
     Rk30DispHardwareCursor *ctx = RK30_DISP_HWC(pScrn);
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
+    OvlHWPtr overlay = pMxv->OvlHW;
     struct fbcurpos pos;
 
-    pos.x = x;
-    pos.y = y;
+    switch(overlay->saved_var.yres){
+    case 720:
+//	pos.x = (x << 4)/9;
+	pos.x = (x*3)/2;
+	pos.y = (y*3)/2;
+	break;
+    default:
+	pos.x = x;
+	pos.y = y;
+    }
 
     
     if (pos.x < 0)

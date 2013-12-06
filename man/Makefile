@@ -128,7 +128,7 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(drivermandir)"
 DATA = $(driverman_DATA)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-ACLOCAL = ${SHELL} /usr/src/video/my/back/3/xf86-video-fbdev/missing --run aclocal-1.11
+ACLOCAL = ${SHELL} /usr/src/my/video/drv/back/old2/xf86-video-fbdev/missing --run aclocal-1.11
 ADMIN_MAN_DIR = $(mandir)/man$(ADMIN_MAN_SUFFIX)
 ADMIN_MAN_SUFFIX = 8
 AMTAR = $${TAR-tar}
@@ -136,9 +136,9 @@ AM_DEFAULT_VERBOSITY = 0
 APP_MAN_DIR = $(mandir)/man$(APP_MAN_SUFFIX)
 APP_MAN_SUFFIX = 1
 AR = ar
-AUTOCONF = ${SHELL} /usr/src/video/my/back/3/xf86-video-fbdev/missing --run autoconf
-AUTOHEADER = ${SHELL} /usr/src/video/my/back/3/xf86-video-fbdev/missing --run autoheader
-AUTOMAKE = ${SHELL} /usr/src/video/my/back/3/xf86-video-fbdev/missing --run automake-1.11
+AUTOCONF = ${SHELL} /usr/src/my/video/drv/back/old2/xf86-video-fbdev/missing --run autoconf
+AUTOHEADER = ${SHELL} /usr/src/my/video/drv/back/old2/xf86-video-fbdev/missing --run autoheader
+AUTOMAKE = ${SHELL} /usr/src/my/video/drv/back/old2/xf86-video-fbdev/missing --run automake-1.11
 AWK = mawk
 BASE_CFLAGS =  -Wall -Wpointer-arith -Wmissing-declarations -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes -Wnested-externs -Wbad-function-cast -Wold-style-definition -Wdeclaration-after-statement -Wunused -Wuninitialized -Wshadow -Wcast-qual -Wmissing-noreturn -Wmissing-format-attribute -Wredundant-decls -Werror=implicit -Werror=nonnull -Werror=init-self -Werror=main -Werror=missing-braces -Werror=sequence-point -Werror=return-type -Werror=trigraphs -Werror=array-bounds -Werror=write-strings -Werror=address -Werror=int-to-pointer-cast -Werror=pointer-to-int-cast
 CC = gcc -std=gnu99
@@ -182,8 +182,8 @@ LIB_MAN_SUFFIX = 3
 LIPO = 
 LN_S = ln -s
 LTLIBOBJS = 
-MAINT = 
-MAKEINFO = ${SHELL} /usr/src/video/my/back/3/xf86-video-fbdev/missing --run makeinfo
+MAINT = #
+MAKEINFO = ${SHELL} /usr/src/my/video/drv/back/old2/xf86-video-fbdev/missing --run makeinfo
 MANIFEST_TOOL = :
 MAN_SUBSTS = 	-e 's|__vendorversion__|"$(PACKAGE_STRING)" "$(XORG_MAN_PAGE)"|' 	-e 's|__xorgversion__|"$(PACKAGE_STRING)" "$(XORG_MAN_PAGE)"|' 	-e 's|__xservername__|Xorg|g' 	-e 's|__xconfigfile__|xorg.conf|g' 	-e 's|__projectroot__|$(prefix)|g' 	-e 's|__apploaddir__|$(appdefaultdir)|g' 	-e 's|__appmansuffix__|$(APP_MAN_SUFFIX)|g' 	-e 's|__drivermansuffix__|$(DRIVER_MAN_SUFFIX)|g' 	-e 's|__adminmansuffix__|$(ADMIN_MAN_SUFFIX)|g' 	-e 's|__libmansuffix__|$(LIB_MAN_SUFFIX)|g' 	-e 's|__miscmansuffix__|$(MISC_MAN_SUFFIX)|g' 	-e 's|__filemansuffix__|$(FILE_MAN_SUFFIX)|g'
 MISC_MAN_DIR = $(mandir)/man$(MISC_MAN_SUFFIX)
@@ -198,10 +198,10 @@ OTOOL64 =
 PACKAGE = xf86-video-fbdev
 PACKAGE_BUGREPORT = https://bugs.freedesktop.org/enter_bug.cgi?product=xorg
 PACKAGE_NAME = xf86-video-fbdev
-PACKAGE_STRING = xf86-video-fbdev 0.4.3
+PACKAGE_STRING = xf86-video-fbdev 0.5.1
 PACKAGE_TARNAME = xf86-video-fbdev
 PACKAGE_URL = 
-PACKAGE_VERSION = 0.4.3
+PACKAGE_VERSION = 0.5.1
 PATH_SEPARATOR = :
 PCIACCESS_CFLAGS = 
 PCIACCESS_LIBS = 
@@ -214,14 +214,14 @@ SET_MAKE =
 SHELL = /bin/bash
 STRICT_CFLAGS =  -pedantic -Werror -Werror=attributes
 STRIP = strip
-VERSION = 0.4.3
+VERSION = 0.5.1
 XORG_CFLAGS = -fvisibility=hidden -I/usr/include/pixman-1 -I/usr/include/xorg  
 XORG_LIBS =  
 XORG_MAN_PAGE = X Version 11
-abs_builddir = /usr/src/video/my/back/3/xf86-video-fbdev/man
-abs_srcdir = /usr/src/video/my/back/3/xf86-video-fbdev/man
-abs_top_builddir = /usr/src/video/my/back/3/xf86-video-fbdev
-abs_top_srcdir = /usr/src/video/my/back/3/xf86-video-fbdev
+abs_builddir = /usr/src/my/video/drv/back/old2/xf86-video-fbdev/man
+abs_srcdir = /usr/src/my/video/drv/back/old2/xf86-video-fbdev/man
+abs_top_builddir = /usr/src/my/video/drv/back/old2/xf86-video-fbdev
+abs_top_srcdir = /usr/src/my/video/drv/back/old2/xf86-video-fbdev
 ac_ct_AR = ar
 ac_ct_CC = gcc
 ac_ct_DUMPBIN = 
@@ -250,7 +250,7 @@ host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /usr/src/video/my/back/3/xf86-video-fbdev/install-sh
+install_sh = ${SHELL} /usr/src/my/video/drv/back/old2/xf86-video-fbdev/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -283,7 +283,7 @@ all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .$(DRIVER_MAN_SUFFIX) .man
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in: # $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -308,9 +308,9 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure:  $(am__configure_deps)
+$(top_srcdir)/configure: # $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
+$(ACLOCAL_M4): # $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
 

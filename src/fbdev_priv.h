@@ -13,8 +13,16 @@
 #define DEBUG
 #define PAGE_MASK    (getpagesize() - 1)
 
+#define GET_UMP_SECURE_ID_BUF1 _IOWR('m', 310, unsigned int)
+#define GET_UMP_SECURE_ID_BUF2 _IOWR('m', 311, unsigned int)
+
+//#define GET_UMP_SECURE_ID_SUNXI_FB _IOWR('s', 100, unsigned int)
+
+
 typedef struct {
 	int   fd;
+	int   fd_RGA;
+	int   fd_IPP;
 	unsigned char *fb_mem[4];//0:for RGB, 1:swap?, 2:misc
 	unsigned char *fb_mio;
 	CARD32 phadr_mem[4];//0:for RGB, 1:swap?, 2:misc
@@ -24,18 +32,13 @@ typedef struct {
 	struct fb_fix_screeninfo fix;
 	struct fb_var_screeninfo var;
 	struct fb_var_screeninfo saved_var;
+	int	IPP_mode;
+	int	RGA_mode;
 	int ShadowPg;
+	int rga_pa;
+	pthread_mutex_t rgamutex;
+	pthread_mutex_t ippmutex;
 } OvlHWRec, *OvlHWPtr;
-
-typedef struct {
-	int  fd;
-//	struct rga_req  RGA_req;
-} RGAHWRec, *RGAHWPtr;
-
-typedef struct {
-	int  fd;
-//        struct rk29_ipp_req IPP_req;
-} IPPHWRec, *IPPHWPtr;
 
 typedef struct {
         unsigned char brightness;
@@ -43,22 +46,25 @@ typedef struct {
         RegionRec     clip;
         CARD32        colorKey;
         int	      videoStatus;
-        Time          offTime;
-        Time          freeTime;
+//        Time          offTime;
+//        Time          freeTime;
         int           lastPort;
 
-	CARD32	x_drv;
-	CARD32	y_drv;
+	CARD32	x_drw;
+	CARD32	y_drw;
+
+	CARD32	w_src;
+	CARD32	h_src;
 
 //	CARD32	pixels;
 //	CARD32	offset;
 
 //	int npixels;
 //	int nlines;
-//	char	flmmode;
-        struct rk29_ipp_req IPP_req;
-	struct rga_req  RGA_req;
-	struct rga_req  RGA_req1;
+	Bool	FlScr;
+	int	rga_pa;
+	int	IPP_mode;
+	int	RGA_mode;
 } XVPortPrivRec, *XVPortPrivPtr;
 
 
@@ -66,6 +72,7 @@ typedef struct {
 	unsigned char*			fbstart;
 	unsigned char*			fbmem;
 	int				fboff;
+//	int				fbhres;
 	int				lineLength;
 	int				rotate;
 	Bool				shadowFB;
@@ -82,14 +89,10 @@ typedef struct {
 	void				*Rk30MaliDRI2_private;
 	void				*Rk30DispHardwareCursor_private;
 
-//IAM
 //        XF86VideoAdaptorPtr	adaptor;
 //	ExaDriverPtr 		ExaHW;
 	OvlHWPtr		OvlHW;
-	IPPHWPtr		IPPHW;
-	RGAHWPtr		RGAHW;
         XVPortPrivPtr		XVport;
-
 } FBDevRec, *FBDevPtr;
 
 #define FBDEVPTR(p) ((FBDevPtr)((p)->driverPrivate))

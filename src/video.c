@@ -36,7 +36,7 @@
 #include <sys/mman.h>
 
 #ifdef DEBUG
-#define XVDBG(format, args...)		xf86DrvMsg(pScrn->scrnIndex, X_INFO, format, ## args)
+#define XVDBG(format, args...)		xf86DrvMsg(pScrn->scrnIndex, X_WARNING, format, ## args)
 #else
 #define XVDBG(format, args...)
 #endif
@@ -62,133 +62,31 @@ XF86ImageRec Images[] = {
 };
 
 //-------------------------------------------------------------------
-static void initRGAreq(ScrnInfoPtr pScrn,/* unsigned short width, unsigned short height,*/ unsigned short vir_w,
-					    unsigned short vir_h, unsigned int InFrmt, unsigned int OutFrmt)
-{
-    FBDevPtr pMxv = FBDEVPTR(pScrn);
-    XVPortPrivPtr XVport = pMxv->XVport;
-    struct rga_req *RGA_req,*RGA_req1;
-
-    RGA_req = &XVport->RGA_req;
-    RGA_req1 = &XVport->RGA_req1;
-//    OvlHWPtr overlay = pMxv->OvlHW;
-
-    memset(RGA_req, 0, sizeof(struct rga_req));
-    memset(RGA_req1, 0, sizeof(struct rga_req));
-//Src
-//    RGA_req->src.yrgb_addr = srcyaddr;
-//    RGA_req->src.uv_addr  = uv_addr;
-//    RGA_req->src.v_addr   = v_addr;
-//    RGA_req->src.vir_w = width;
-//    RGA_req->src.vir_h = height;
-    RGA_req->src.format = InFrmt;
-//    RGA_req->src.act_w = width;
-//    RGA_req->src.act_h = height;
-//    RGA_req->src.x_offset = 0;
-//    RGA_req->src.y_offset = 0;
-//Dst
-//    RGA_req->dst.yrgb_addr = dstyaddr;
-//    RGA_req->dst.uv_addr  = 0;
-//    RGA_req->dst.v_addr   = 0;
-    RGA_req->dst.vir_w = vir_w;
-    RGA_req->dst.vir_h = vir_h;
-    RGA_req->dst.format = OutFrmt;
-
-    RGA_req1->dst.vir_w = vir_w;
-    RGA_req1->dst.vir_h = vir_h;
-    RGA_req1->dst.format = OutFrmt;
-//    RGA_req->clip.xmin = 0;
-    RGA_req->clip.xmax = RGA_req->dst.vir_w-1;
-    RGA_req1->clip.xmax = RGA_req1->dst.vir_w-1;
-//    RGA_req->clip.ymin = 0;
-    RGA_req->clip.ymax = RGA_req->dst.vir_h-1;
-    RGA_req1->clip.ymax = RGA_req1->dst.vir_h-1;
-//    RGA_req->dst.act_w = width;
-//    RGA_req->dst.act_h = height;//1/2 
-//    RGA_req->dst.x_offset = 0;//drw_x & ~3;
-//    RGA_req->dst.y_offset = 0;//drw_y & ~3;
-
-//    RGA_req->yuv2rgb_mode=2;           /* (enum) BT.601 MPEG / BT.601 JPEG / BT.709  */ 
-//    RGA_req->sina = 0;
-//    RGA_req->cosa = 0;
-//Ctl
-/*    bitblt_mode               = 0x0,
-    color_palette_mode        = 0x1,
-    color_fill_mode           = 0x2,
-    line_point_drawing_mode   = 0x3,
-    blur_sharp_filter_mode    = 0x4,
-    pre_scaling_mode          = 0x5,
-    update_palette_table_mode = 0x6,
-    update_patten_buff_mode   = 0x7,
-*/
-//    RGA_req->render_mode = 5;
-//    RGA_req->scale_mode = 0;          // 0 nearst / 1 bilnear / 2 bicubic     
-//    RGA_req->rotate_mode = 0;
-}
-//----------------------------------------------------
-static void initIPPreq(ScrnInfoPtr pScrn, unsigned int dst_vir_w, unsigned int width, unsigned int height,
-			 /*unsigned int drw_w, unsigned int drw_h,*/ unsigned int format)
-{
-    FBDevPtr pMxv = FBDEVPTR(pScrn);
-    XVPortPrivPtr XVport = pMxv->XVport;
-    struct rk29_ipp_req *ipp_req;
-
-    ipp_req = &XVport->IPP_req;
-    memset(ipp_req, 0, sizeof(struct rk29_ipp_req));
-
-//    ipp_req->src0.YrgbMst = src_addr;
-//    ipp_req->src0.CbrMst = overlay->phadr_mem[3];	// image CbCr address
-    ipp_req->src0.w = width;
-    ipp_req->src0.h = height;
-    ipp_req->src0.fmt = format;
-//IPP_XRGB_8888
-//	IPP_RGB_565 =1 ,
-//	IPP_Y_CBCR_H2V1 = 2,  //yuv 422sp
-//	IPP_Y_CBCR_H2V2 = 3, //yuv 420sp
-//	IPP_Y_CBCR_H1V1 =6, //yuv 444sp
-//    ipp_req->dst0.YrgbMst = overlay->phadr_mem[0] + ((XVport->offset << 2)& ~3);
-//    ipp_req->dst0.CbrMst = 0; //four uv
-//    ipp_req->dst0.w = drw_w;
-//    ipp_req->dst0.h = drw_h;
-    ipp_req->dst0.fmt = ipp_req->src0.fmt;
-    ipp_req->src_vir_w = width;
-    ipp_req->dst_vir_w = dst_vir_w;
-    ipp_req->timeout = 100;
-    ipp_req->flag = IPP_ROT_0;
-}
-//-----------------------------------------------------------------
 static Bool XVInitStreams(ScrnInfoPtr pScrn, Bool FlScr, short drw_x, short drw_y, short drw_w,
 						short drw_h, short width, short height, int id)
 {       
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     OvlHWPtr overlay = pMxv->OvlHW;
     XVPortPrivPtr XVport = pMxv->XVport;
-    CARD32 tres, Nwidth, mode, xres, yres, inRGAmode,outRGAmode, IPPmode;
+    CARD32 tres, Nwidth, mode, xres, yres;
 
     XVDBG("Try setup overlay \n");
 
     switch(id) {
     case FOURCC_YV12:
-//	inRGAmode = RK_FORMAT_YCbCr_420_P;
     case FOURCC_I420:
-//	mode = YCrCb_NV12;
-//	if(id == FOURCC_I420)
-	    inRGAmode = RK_FORMAT_YCbCr_420_P;
-//	outRGAmode = RK_FORMAT_YCrCb_420_SP;
-	IPPmode = IPP_Y_CBCR_H2V2;
+	XVport->RGA_mode = RK_FORMAT_YCbCr_420_P;
+	XVport->IPP_mode = IPP_Y_CBCR_H2V2;//3
         break;
     case FOURCC_UYVY:
-//	inRGAmode = RK_FORMAT_YCrCb_422_P;
     case FOURCC_YUY2:
-//	mode = YCbCr_422_SP;
-	inRGAmode = RK_FORMAT_YCrCb_422_SP;
-	IPPmode = IPP_Y_CBCR_H2V1;
+	XVport->RGA_mode = RK_FORMAT_YCrCb_422_SP;
+	XVport->IPP_mode = IPP_Y_CBCR_H2V1;//2
 	break;
     default:
-	mode = RGBX_8888;
-	inRGAmode = RK_FORMAT_RGBX_8888;
-//	outRGAmode = RK_FORMAT_RGBX_8888;
-	IPPmode = IPP_XRGB_8888;
+//	mode = RGBX_8888;
+	XVport->RGA_mode = RK_FORMAT_RGBX_8888;
+	XVport->IPP_mode = IPP_XRGB_8888;
     }
 
     if(FlScr){// fullscreen
@@ -199,8 +97,8 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, Bool FlScr, short drw_x, short drw_
 	    XVDBG("overlay wide\n");
 	    xres = width;
 	    yres = (tres-0)& ~1;
-	    XVport->x_drv = 0;
-	    XVport->y_drv = (drw_y * yres) / overlay->saved_var.yres;
+	    XVport->x_drw = 0;
+	    XVport->y_drw = (drw_y * yres) / overlay->saved_var.yres;
 	}
 	else{//[||]
 	    tres = (overlay->saved_var.xres * height) / overlay->saved_var.yres;
@@ -209,29 +107,28 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, Bool FlScr, short drw_x, short drw_
 	    tres = tres * width / Nwidth; // scale by x
 	    yres = height;
 	    xres = (tres-0) & ~1;
-	    XVport->x_drv = (drw_x * xres) / overlay->saved_var.xres;
-	    XVport->y_drv = 0;
+	    XVport->x_drw = (drw_x * xres) / overlay->saved_var.xres;
+	    XVport->y_drw = 0;
 	}
-	outRGAmode = RK_FORMAT_RGB_888;
 	mode = RGB_888;
     }
     else{
 	xres = overlay->saved_var.xres;
 	yres = overlay->saved_var.yres;
 	mode = RGBX_8888;
-	outRGAmode = RK_FORMAT_RGBX_8888;
     }
-    OvlEnable(pScrn, 0);
+//    OvlEnable(pScrn, 0);
+    OvlClearBuf(pScrn, 0);
+    OvlFlushPg(pScrn, 0, MS_SYNC);
+//    XVDBG("IPP_mode %d\n",XVport->IPP_mode);
     XVDBG("overlay try set res - x:%d, y:%d ---- width:%d, heigth:%d, mode:%d\n",xres,yres,width,height,mode);
     if( OvlSetMode(pScrn, xres, yres, mode)) return FALSE;
 //    OvlSwDisp(pScrn, 1, TRUE);
 //    OvlClearBuf(pScrn, 1);
-    OvlClearBuf(pScrn, 0);
-    OvlFlushPg(pScrn, 0, MS_SYNC);
+    usleep(500);
     OvlEnable(pScrn, 1);
-
-    initRGAreq(pScrn, overlay->var.xres_virtual, yres, inRGAmode, outRGAmode);
-    initIPPreq(pScrn, width, width, height, IPPmode);
+//    initRGAreq(pScrn, overlay->var.xres_virtual, yres, inRGAmode, outRGAmode);
+//    initIPPreq(pScrn, width, width, height, IPPmode);
 
     return TRUE;
 }
@@ -262,89 +159,24 @@ int VFillReg(ScrnInfoPtr pScrn, RegionPtr clipBoxes, /*int numbuf*/CARD32 yrgb_a
 	buf = (CARD32 *) buf + overlay->var.xres_virtual;
     }
     OvlFlushPg(pScrn, numbuf, MS_ASYNC);*/
-    struct rga_req *RGA_req;
-
-    RGA_req = &XVport->RGA_req1;
-//Dst
-    RGA_req->dst.format = RK_FORMAT_RGBX_8888;
-    RGA_req->dst.yrgb_addr = yrgb_addr;
-//    RGA_req->dst.uv_addr  = uv_addr;
-//    RGA_req->dst.v_addr   = v_addr;
-    RGA_req->dst.act_w = clipBoxes->extents.x2 - clipBoxes->extents.x1+1;
-    RGA_req->dst.act_h =  clipBoxes->extents.y2 - clipBoxes->extents.y1+1;
-    RGA_req->dst.x_offset = clipBoxes->extents.x1;
-    RGA_req->dst.y_offset = clipBoxes->extents.y1;
-//Ctl
-    RGA_req->render_mode = color_fill_mode;
-    RGA_req->fg_color = color;
-//    uint32_t bg_color;
-//    RGA_req->scale_mode = 0;          // 0 nearst / 1 bilnear / 2 bicubic     
-//    RGA_req->rotate_mode = 0;
-    return RgaBlit(pScrn, RGA_req, RGA_BLIT_SYNC);
+    return 0;
 
 }
 //---------------------------------------------------
-static void VChFrmt(ScrnInfoPtr pScrn, unsigned int srcyaddr, unsigned int uv_addr, unsigned int v_addr,
-	 unsigned int dstyaddr, unsigned int dstuvaddr, unsigned short drw_x, unsigned short drw_y,
-	 unsigned short drw_w, unsigned short drw_h)
-{
-    FBDevPtr pMxv = FBDEVPTR(pScrn);
-    XVPortPrivPtr XVport = pMxv->XVport;
-    struct rga_req *RGA_req;
-
-    RGA_req = &XVport->RGA_req;
-
-    RGA_req->src.yrgb_addr = srcyaddr;
-    RGA_req->src.uv_addr  = uv_addr;
-    RGA_req->src.v_addr   = v_addr;
-    RGA_req->dst.yrgb_addr = dstyaddr;
-    RGA_req->dst.uv_addr  = dstuvaddr;
-
-    RGA_req->src.vir_w = drw_w;
-    RGA_req->src.vir_h = drw_h;
-    RGA_req->src.act_w = drw_w;
-    RGA_req->src.act_h = drw_h;
-    RGA_req->dst.act_w = drw_w;
-    RGA_req->dst.act_h = drw_h;//1/2 
-
-    RGA_req->dst.x_offset = drw_x;
-    RGA_req->dst.y_offset = drw_y;
-
-    RgaBlit(pScrn, RGA_req, RGA_BLIT_SYNC);
-}
-//-----------------------------------------------------------------
-static void VScale(ScrnInfoPtr pScrn, unsigned int src_Yaddr, unsigned int src_UVaddr, unsigned int dst_Yaddr,
-					 unsigned int dst_UVaddr, unsigned short drw_w, unsigned short drw_h)
-{
-    FBDevPtr pMxv = FBDEVPTR(pScrn);
-    XVPortPrivPtr XVport = pMxv->XVport;
-    struct rk29_ipp_req *ipp_req;
-
-    ipp_req = &XVport->IPP_req;
-    ipp_req->src0.YrgbMst = src_Yaddr;
-    ipp_req->src0.CbrMst = src_UVaddr;
-    ipp_req->dst0.YrgbMst = dst_Yaddr;
-    ipp_req->dst0.CbrMst = dst_UVaddr;
-    ipp_req->dst0.w = drw_w;
-    ipp_req->dst0.h = drw_h;
-    ipp_req->dst_vir_w = drw_w;
-
-    IppBlit(pScrn, ipp_req);
-}
-//-----------------------------------------------------------------
 static void
-XVCopyPackedToFb(const void *src, void *dst_Y, void *dst_UV, CARD32 dst_offset,
-	    int srcPitch, int dstPitch, int h, int w, unsigned char isYUY2)
+XVCopyPackedToFb(const void *src, void *dst_Y, void *dst_UV,/* CARD32 dst_offset,
+	    int srcPitch,*/ int dstPitch, int h, int w, unsigned char isYUY2)
 {
     const CARD32 *Src;
-    CARD32 *Dst_Y,*Dst_UV;
+    CARD16 *Dst_Y,*Dst_UV;
     const CARD8 *tmp;
-    int i;
+    int i, srcPitch;
 
-    srcPitch <<= 1;
-    dst_Y = (CARD8 *) dst_Y + dst_offset;
-    dst_UV = (CARD8 *) dst_UV + (dst_offset & ~1);
-    w = (w & ~3) >> 2;
+    srcPitch = w << 1;
+//    dst_Y = (CARD8 *) dst_Y + dst_offset;
+//    dst_UV = (CARD8 *) dst_UV + (dst_offset & ~1);
+//    w = (w & ~3) >> 2;
+    w = w >> 1;
     while (h > 0) {
             Dst_Y = dst_Y;
             Dst_UV = dst_UV;
@@ -353,21 +185,21 @@ XVCopyPackedToFb(const void *src, void *dst_Y, void *dst_UV, CARD32 dst_offset,
 	if(isYUY2)
             while (i > 0) {
 		tmp = (CARD8 *) Src;
-                Dst_Y[0] = tmp[0] | (tmp[2] << 8) | (tmp[4] << 16) | (tmp[6] << 24);
-                Dst_UV[0] = tmp[1] | (tmp[3] << 8) | (tmp[5] << 16) | (tmp[7] << 24);
+                Dst_Y[0] = tmp[0] | (tmp[2] << 8);// | (tmp[4] << 16) | (tmp[6] << 24);
+                Dst_UV[0] = tmp[1] | (tmp[3] << 8);// | (tmp[5] << 16) | (tmp[7] << 24);
                 Dst_UV++;
                 Dst_Y++;
-                Src+=2;
+                Src++;
 		i--;
             }
 	else//UYVY
             while (i > 0) {
 		tmp = (CARD8 *) Src;
-                Dst_UV[0] = tmp[0] | (tmp[2] << 8) | (tmp[4] << 16) | (tmp[6] << 24);
-                Dst_Y[0] = tmp[1] | (tmp[3] << 8) | (tmp[5] << 16) | (tmp[7] << 24);
+                Dst_UV[0] = tmp[0] | (tmp[2] << 8);// | (tmp[4] << 16) | (tmp[6] << 24);
+                Dst_Y[0] = tmp[1] | (tmp[3] << 8);// | (tmp[5] << 16) | (tmp[7] << 24);
                 Dst_UV++;
                 Dst_Y++;
-                Src+=2;
+                Src++;
 		i--;
             }
         src = (const CARD8 *) src + srcPitch;
@@ -389,7 +221,7 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     CARD32 x1, x2, y1, y2;
     CARD32 drw_offset,offset, offset2=0, offset3=0;
     BoxRec dstBox;
-    CARD32 tmp;
+    CARD32 tmp, dstPitch;
     Bool isYUY2 = FALSE, FlScr = FALSE, ClipEq = FALSE;
     
    /* Clip */
@@ -407,17 +239,26 @@ static int XVPutImage(ScrnInfoPtr pScrn,
 	return Success;
     if((clipBoxes->extents.x1 == 0)||(clipBoxes->extents.y1 == 0))
 	FlScr = TRUE;
+    if(FlScr != XVport->FlScr){
+	XVport->videoStatus = 0;
+	XVport->FlScr = FlScr;
+    }
     if(REGION_EQUAL(pScrn->pScreen, &XVport->clip, clipBoxes))
 //    if(XVport->clip.extents.x1 == clipBoxes->extents.x1 && XVport->clip.extents.x2 == clipBoxes->extents.x2 &&
 //	XVport->clip.extents.y1 == clipBoxes->extents.y1 && XVport->clip.extents.y2 == clipBoxes->extents.y2)
 	ClipEq = TRUE;
 //    else
+    if((XVport->w_src != src_w) || (XVport->h_src != src_h)){
+	XVport->videoStatus = 0;
+	XVport->w_src = src_w;
+	XVport->h_src = src_h;
+    }
 //	if(XVport->videoStatus == CLIENT_VIDEO_CH)
 //	    XVport->videoStatus = 0;
 
 //    if(XVport->videoStatus == 0){
-    if(XVport->videoStatus < CLIENT_VIDEO_ON){
-	XVDBG("video params  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d\n",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height);
+    if(XVport->videoStatus < CLIENT_VIDEO_INIT){
+	XVDBG("video params  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X\n",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
 	XVDBG("video params clipBoxes x1=%d,x2=%d,y1=%d,y2=%d\n",clipBoxes->extents.x1,clipBoxes->extents.x2,clipBoxes->extents.y1,clipBoxes->extents.y2);
 	if(!XVInitStreams(pScrn, FlScr, drw_x, drw_y, drw_w, drw_h, src_w, src_h, image))
 	    return BadAlloc;
@@ -432,7 +273,8 @@ static int XVPutImage(ScrnInfoPtr pScrn,
 	offset = src_w * src_h;
 	if(!FlScr){ //not fullscreen
 	    drw_offset = drw_w * drw_h;
-    	    offset2 = ((drw_offset)+PAGE_MASK)& ~PAGE_MASK;
+//    	    offset2 = ((drw_offset)+PAGE_MASK)& ~PAGE_MASK;
+    	    offset2 = drw_offset;
     	    offset3 = (((drw_offset >> 2) + offset2));
 	    drw_offset = offset2;
 	}
@@ -441,7 +283,7 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     	    offset3 = ((offset2 >> 2) + offset2) & ~1;
 	}
 
-    switch(image) {
+/*    switch(image) {
     case FOURCC_YV12:
     case FOURCC_I420:
 	break;
@@ -449,7 +291,7 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     case FOURCC_YUY2:
 	break;
     }
-
+*/
     switch(image) {
     case FOURCC_I420:
         tmp = offset2;
@@ -461,36 +303,42 @@ static int XVPutImage(ScrnInfoPtr pScrn,
 	OvlFlushPg(pScrn, 3, MS_SYNC);
 	if(FlScr){ // fullscreen
 	    OvlSync(pScrn);
-	    VChFrmt(pScrn, overlay->phadr_mem[3], overlay->phadr_mem[3]+offset2, overlay->phadr_mem[3]+offset3,
-		    overlay->phadr_mem[0], 0, XVport->x_drv, XVport->y_drv, src_w, src_h);
+	    OvlChBufFrmt(pScrn, overlay->phadr_mem[3], overlay->phadr_mem[3]+offset2, overlay->phadr_mem[3]+offset3,
+				XVport->RGA_mode, overlay->RGA_mode, overlay->phadr_mem[0],
+				src_w, src_h, XVport->x_drw, XVport->y_drw, src_w, overlay->var.xres_virtual);
 	}
 	else
 	{
-	    VScale(pScrn, overlay->phadr_mem[3], overlay->phadr_mem[3]+offset, overlay->phadr_mem[2],
-					    	overlay->phadr_mem[2]+drw_offset,drw_w, drw_h);
-	    OvlSync(pScrn);
-	    VChFrmt(pScrn,overlay->phadr_mem[2],overlay->phadr_mem[2]+offset2,
-	    overlay->phadr_mem[2]+offset3, overlay->phadr_mem[0],0,drw_x,drw_y,drw_w,drw_h);
+	    OvlScaleBuf(pScrn, overlay->phadr_mem[3], overlay->phadr_mem[3]+offset, XVport->IPP_mode,
+		overlay->phadr_mem[2],overlay->phadr_mem[2]+drw_offset, src_w, src_h, drw_w, drw_h, src_w, drw_w);
+//	    OvlSync(pScrn);
+	    OvlChBufFrmt(pScrn, overlay->phadr_mem[2], overlay->phadr_mem[2]+offset2, overlay->phadr_mem[2]+offset3,
+				XVport->RGA_mode, overlay->RGA_mode, overlay->phadr_mem[0],
+				drw_w, drw_h, drw_x, drw_y, drw_w, overlay->var.xres_virtual);
 	}
         break; 
     case FOURCC_YUY2:
 	isYUY2 = TRUE;
     case FOURCC_UYVY:
-	XVCopyPackedToFb(buf, overlay->fb_mem[3], overlay->fb_mem[3]+offset, 0, src_w, src_w,
-								     src_h, src_w, isYUY2);
+//	offset = 1920*1080*2;
+	dstPitch = (src_w + 7)& ~7;
+	offset = dstPitch *src_h;
+	XVCopyPackedToFb(buf, overlay->fb_mem[3], overlay->fb_mem[3]+offset, dstPitch, src_h, src_w, isYUY2);
 	OvlFlushPg(pScrn, 3, MS_SYNC);
 	if(FlScr){ // fullscreen
 	    OvlSync(pScrn);
-	    VChFrmt(pScrn, overlay->phadr_mem[3], overlay->phadr_mem[3]+offset,0,
-		    overlay->phadr_mem[0], 0, XVport->x_drv, XVport->y_drv, src_w, src_h);
+	    OvlChBufFrmt(pScrn, overlay->phadr_mem[3], overlay->phadr_mem[3]+offset, 0,
+				XVport->RGA_mode, overlay->RGA_mode, overlay->phadr_mem[0],
+				src_w, src_h,XVport->x_drw, XVport->y_drw, dstPitch, overlay->var.xres_virtual);
 	}
 	else
 	{
-	    VScale(pScrn, overlay->phadr_mem[3], overlay->phadr_mem[3]+offset, overlay->phadr_mem[2],
-					    	overlay->phadr_mem[2]+drw_offset,drw_w, drw_h);
+	    OvlScaleBuf(pScrn, overlay->phadr_mem[3], overlay->phadr_mem[3]+offset, XVport->IPP_mode,
+		overlay->phadr_mem[2],overlay->phadr_mem[2]+drw_offset, src_w, src_h, drw_w, drw_h, src_w, dstPitch);
 	    OvlSync(pScrn);
-	    VChFrmt(pScrn,overlay->phadr_mem[2],overlay->phadr_mem[2]+drw_offset,
-	    0, overlay->phadr_mem[0],0,drw_x,drw_y,drw_w,drw_h);
+	    OvlChBufFrmt(pScrn, overlay->phadr_mem[2], overlay->phadr_mem[2]+drw_offset, 0,
+				XVport->RGA_mode, overlay->RGA_mode, overlay->phadr_mem[0],
+				drw_w, drw_h, drw_x, drw_y, dstPitch, overlay->var.xres_virtual);
 	}
 
         break;
@@ -534,6 +382,8 @@ static void XVStopVideo(ScrnInfoPtr pScrn, pointer data, Bool exit)
         XVport->videoStatus = 0;
 	REGION_EMPTY(pScrn->pScreen, &XVport->clip);
 	OvlReset(pScrn);
+	OvlRGAUnlock(pScrn);
+	XVport->rga_pa = 0;
     }
     else{
 	XVDBG("video stop\n");
@@ -634,7 +484,8 @@ static XF86VideoAdaptorPtr XVAllocAdaptor(ScrnInfoPtr pScrn)
 	for(i = 0; i < XVPORTS; i++)
     	    adapt->pPortPrivates[i].val = i;
 
-    XVport->colorKey = 0x00020202;
+    XVport->colorKey = 0;//0x00020202;
+    XVport->rga_pa = 0;
     XVport->videoStatus = 0;
     XVport->lastPort = -1;
 
@@ -698,15 +549,17 @@ InitXVideo(ScreenPtr pScreen)
 	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "XV:Not found overlay\n");
 	return;
     }
-    if(NULL == pMxv->IPPHW){
+
+    OvlHWPtr	overlay = pMxv->OvlHW;
+/*    if(overlay->fd_IPP <= 0){
 	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "XV:Not found ipp\n");
 	return;
     }
-    if(NULL == pMxv->RGAHW){
+    if(overlay->fd_RGA <= 0){
 	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "Not found rga\n");
 	return;
     }
-
+*/
     newAdaptor = XVInitAdaptor(pScreen);
 
     if (newAdaptor == NULL){

@@ -26,14 +26,14 @@ void CloseXVideo(ScreenPtr pScreen);
 #define CLIENT_VIDEO_ON		0x04
 #define CLIENT_VIDEO_CH		0x03
 #define CLIENT_VIDEO_INIT	0x02
-
+/*
 struct offscreen_area {
   unsigned char *priv;
   unsigned char *ptr;
   unsigned int size;
   int fd;
 };
-
+*/
 #define FOURCC_RGBA8888   0x41424752
 #define XVIMAGE_RGBA8888 \
         { \

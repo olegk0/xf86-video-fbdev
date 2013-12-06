@@ -28,13 +28,23 @@
 void InitHWAcl(ScreenPtr pScreen);
 void CloseHWAcl(ScreenPtr pScreen);
 
-int IppBlit(ScrnInfoPtr pScrn, struct rk29_ipp_req *ipp_req);
+//int IppBlit(ScrnInfoPtr pScrn, struct rk29_ipp_req *ipp_req);
 
-int RgaBlit(ScrnInfoPtr pScrn, struct rga_req *RGA_req, int syncmode);
+//int RgaBlit(ScrnInfoPtr pScrn, struct rga_req *RGA_req, int syncmode);
+int OvlScaleBuf(ScrnInfoPtr pScrn, unsigned int SrcYAddr, unsigned int SrcUVAddr, int SrcFrmt,
+				unsigned int DstYAddr, unsigned int DstUVAddr,
+				int Src_w, int Src_h, int Drw_w, int Drw_h, int Src_vir, int Dst_vir);
+int OvlChBufFrmt(ScrnInfoPtr pScrn, unsigned int SrcYAddr, unsigned int SrcUVAddr, unsigned int SrcVAddr,
+				int SrcFrmt, int DstFrmt, unsigned int DstYAddr,
+				int Drw_w, int Drw_h, int Drw_x, int Drw_y, int Src_vir, int Dst_vir);
+int OvlPutBufToSrcn(ScrnInfoPtr pScrn, unsigned int SrcBuf, int Src_vir,
+				int Drw_w, int Drw_h, int Drw_x, int Drw_y, int pa_code);
+void OvlRGAUnlock(ScrnInfoPtr pScrn);
 
+int OvlUpdSavMod(ScrnInfoPtr pScrn);
 int OvlSync(ScrnInfoPtr pScrn);
 int OvlSwDisp(ScrnInfoPtr pScrn, int disp, Bool clear);
-void OvlFillBuf(CARD32 *buf, unsigned int len, CARD32 color);
+//void OvlFillBuf(CARD32 *buf, unsigned int len, CARD32 color);
 void OvlClearBuf(ScrnInfoPtr pScrn, unsigned char pg);
 int OvlSetMode(ScrnInfoPtr pScrn, unsigned short xres, unsigned short yres, unsigned char mode);
 int OvlReset(ScrnInfoPtr pScrn);
