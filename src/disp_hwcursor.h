@@ -1,4 +1,5 @@
 /*
+ * Adapted for rk3066 olegk0 <olegvedi@gmail.com>
  * Copyright © 2013 Siarhei Siamashka <siarhei.siamashka@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -35,13 +36,13 @@
 
 typedef struct {
     xf86CursorInfoPtr hwcursor;
-    int fd_fb;
+    int fb_fd;
 //    int cursor_enabled;
 //    int cursor_x, cursor_y;
 
-} Rk30DispHardwareCursor;
+} Rk30DispHWCRec, *Rk30DispHWCPtr; 
 
-Rk30DispHardwareCursor *Rk30DispHardwareCursor_Init(ScreenPtr pScreen, const char *device);
+void Rk30DispHardwareCursor_Init(ScreenPtr pScreen, const char *device);
 void Rk30DispHardwareCursor_Close(ScreenPtr pScreen);
 
 #endif

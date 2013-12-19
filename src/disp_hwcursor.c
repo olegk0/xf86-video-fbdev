@@ -32,6 +32,7 @@
 
 #include "disp_hwcursor.h"
 #include "fbdev_priv.h"
+#include "layer.h"
 
 #include <linux/fb.h>
 #include <sys/ioctl.h>
@@ -40,25 +41,35 @@
 
 static void ShowCursor(ScrnInfoPtr pScrn)
 {
-    Rk30DispHardwareCursor *ctx = RK30_DISP_HWC(pScrn);
+    Rk30DispHWCPtr ctx = FBDEVPTR(pScrn)->Rk30HWC;
     int en = 1;
-    ioctl(ctx->fd_fb, FBIOPUT_SET_CURSOR_EN, &en);
+    ioctl(ctx->fb_fd, FBIOPUT_SET_CURSOR_EN, &en);
 }
 
 static void HideCursor(ScrnInfoPtr pScrn)
 {
-    Rk30DispHardwareCursor *ctx = RK30_DISP_HWC(pScrn);
+    Rk30DispHWCPtr ctx = FBDEVPTR(pScrn)->Rk30HWC;
     int en = 0;
-    ioctl(ctx->fd_fb, FBIOPUT_SET_CURSOR_EN, &en);
+    ioctl(ctx->fb_fd, FBIOPUT_SET_CURSOR_EN, &en);
 }
 
 static void SetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 {
-    Rk30DispHardwareCursor *ctx = RK30_DISP_HWC(pScrn);
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
+    Rk30DispHWCPtr ctx = pMxv->Rk30HWC;
+    OvlHWPtr overlay = pMxv->OvlHW;
     struct fbcurpos pos;
 
-    pos.x = x;
-    pos.y = y;
+    switch(overlay->cur_var.yres){
+    case 720:
+//	pos.x = (x << 4)/9;
+	pos.x = (x*3)/2;
+	pos.y = (y*3)/2;
+	break;
+    default:
+	pos.x = x;
+	pos.y = y;
+    }
 
     
     if (pos.x < 0)
@@ -66,7 +77,7 @@ static void SetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
     if (pos.y < 0)
         pos.y = 0;
 
-    if (ioctl(ctx->fd_fb, FBIOPUT_SET_CURSOR_POS, &pos) >= 0) {
+    if (ioctl(ctx->fb_fd, FBIOPUT_SET_CURSOR_POS, &pos) >= 0) {
 //        ctx->cursor_x = pos.x;
 //        ctx->cursor_y = pos.y;
     }
@@ -75,16 +86,16 @@ static void SetCursorPosition(ScrnInfoPtr pScrn, int x, int y)
 static void SetCursorColors(ScrnInfoPtr pScrn, int bg, int fg)
 {
 struct fb_image img;
-    Rk30DispHardwareCursor *ctx = RK30_DISP_HWC(pScrn);
+    Rk30DispHWCPtr ctx = FBDEVPTR(pScrn)->Rk30HWC;
     img.bg_color = bg;
     img.fg_color = fg;
-    ioctl(ctx->fd_fb, FBIOPUT_SET_CURSOR_CMAP, &img);
+    ioctl(ctx->fb_fd, FBIOPUT_SET_CURSOR_CMAP, &img);
 }
 
 static void LoadCursorImage(ScrnInfoPtr pScrn, unsigned char *bits)
 {
-    Rk30DispHardwareCursor *ctx = RK30_DISP_HWC(pScrn);
-    ioctl(ctx->fd_fb, FBIOPUT_SET_CURSOR_IMG, bits);
+    Rk30DispHWCPtr ctx = FBDEVPTR(pScrn)->Rk30HWC;
+    ioctl(ctx->fb_fd, FBIOPUT_SET_CURSOR_IMG, bits);
 }
 
 /*****************************************************************************
@@ -92,15 +103,24 @@ static void LoadCursorImage(ScrnInfoPtr pScrn, unsigned char *bits)
  * four 32-bit ARGB entries in the palette.                                  *
  *****************************************************************************/
 
-Rk30DispHardwareCursor *Rk30DispHardwareCursor_Init(ScreenPtr pScreen, const char *device)
+void Rk30DispHardwareCursor_Init(ScreenPtr pScreen, const char *device)
 {
     xf86CursorInfoPtr InfoPtr;
-    Rk30DispHardwareCursor *private;
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
+
+    pMxv->Rk30HWC = NULL;
+
+    if(NULL == pMxv->OvlHW){
+	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "DispHardwareCursor_Init: Not found overlay\n");
+	return;
+    }
+
+    OvlHWPtr	overlay = pMxv->OvlHW;
 
     if (!(InfoPtr = xf86CreateCursorInfoRec())) {
-        ErrorF("DispHardwareCursor_Init: xf86CreateCursorInfoRec() failed\n");
-        return NULL;
+    	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "DispHardwareCursor_Init: xf86CreateCursorInfoRec() failed\n");
+        return;
     }
 
     InfoPtr->ShowCursor = ShowCursor;
@@ -114,41 +134,48 @@ Rk30DispHardwareCursor *Rk30DispHardwareCursor_Init(ScreenPtr pScreen, const cha
                      HARDWARE_CURSOR_ARGB;
 
     if (!xf86InitCursor(pScreen, InfoPtr)) {
-        ErrorF("DispHardwareCursor_Init: xf86InitCursor(pScreen, InfoPtr) failed\n");
+	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "DispHardwareCursor_Init: xf86InitCursor(pScreen, InfoPtr) failed\n");
         xf86DestroyCursorInfoRec(InfoPtr);
-        return NULL;
+        goto err;
     }
 
-    private = calloc(1, sizeof(Rk30DispHardwareCursor));
-    if (!private) {
-        ErrorF("DispHardwareCursor_Init: calloc failed\n");
+    pMxv->Rk30HWC = calloc(1, sizeof(Rk30DispHWCRec));
+    if (!pMxv->Rk30HWC) {
+    	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "DispHardwareCursor_Init: calloc failed\n");
         xf86DestroyCursorInfoRec(InfoPtr);
-        return NULL;
+        goto err;
     }
+    Rk30DispHWCPtr HWC = pMxv->Rk30HWC;
 
-    private->fd_fb = open(device, O_RDWR);
-    if (private->fd_fb < 0) {
-        ErrorF("DispHardwareCursor_Init: open: %s failed\n",device);
-	close(private->fd_fb);
-        free(private);
-        return NULL;
+    HWC->fb_fd = open(device, O_RDWR);
+    if (HWC->fb_fd < 0) {
+    	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "DispHardwareCursor_Init: open: %s failed\n",device);
+//	close(HWC->fb_fd);
+        free(HWC);
+        goto err;
     }
-
 //    private->cursor_enabled = 0;
 //    private->cursor_x = -1;
 //    private->cursor_y = -1;
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Enabled hardware cursor\n");
-    private->hwcursor = InfoPtr;
-    return private;
+    HWC->hwcursor = InfoPtr;
+    return;
+//******************not ok*************
+err:
+    xf86DestroyCursorInfoRec(InfoPtr);
 }
 
 void Rk30DispHardwareCursor_Close(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    Rk30DispHardwareCursor *private = RK30_DISP_HWC(pScrn);
-    if (private) {
-	close(private->fd_fb);
-        xf86DestroyCursorInfoRec(private->hwcursor);
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
+
+    if (pMxv->Rk30HWC) {
+	Rk30DispHWCPtr HWC = pMxv->Rk30HWC;
+        xf86DestroyCursorInfoRec(HWC->hwcursor);
+	close(HWC->fb_fd);
+        free(HWC);
+	HWC = NULL;
     }
 }

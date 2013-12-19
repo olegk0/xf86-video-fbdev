@@ -1,4 +1,17 @@
 /*
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "compat-api.h"
@@ -10,57 +23,8 @@
 #include "xf86fbman.h"
 //#include "exa.h"
 
-#define DEBUG
+//#define DEBUG
 #define PAGE_MASK    (getpagesize() - 1)
-
-typedef struct {
-	int   fd;
-	unsigned char *fb_mem[4];//0:for RGB, 1:swap?, 2:misc
-	unsigned char *fb_mio;
-	CARD32 phadr_mem[4];//0:for RGB, 1:swap?, 2:misc
-	CARD32 phadr_mio;
-	CARD32 pg_len;
-//	CARD32 fboff;
-	struct fb_fix_screeninfo fix;
-	struct fb_var_screeninfo var;
-	struct fb_var_screeninfo saved_var;
-	int ShadowPg;
-} OvlHWRec, *OvlHWPtr;
-
-typedef struct {
-	int  fd;
-//	struct rga_req  RGA_req;
-} RGAHWRec, *RGAHWPtr;
-
-typedef struct {
-	int  fd;
-//        struct rk29_ipp_req IPP_req;
-} IPPHWRec, *IPPHWPtr;
-
-typedef struct {
-        unsigned char brightness;
-        unsigned char contrast;
-        RegionRec     clip;
-        CARD32        colorKey;
-        int	      videoStatus;
-        Time          offTime;
-        Time          freeTime;
-        int           lastPort;
-
-	CARD32	x_drv;
-	CARD32	y_drv;
-
-//	CARD32	pixels;
-//	CARD32	offset;
-
-//	int npixels;
-//	int nlines;
-//	char	flmmode;
-        struct rk29_ipp_req IPP_req;
-	struct rga_req  RGA_req;
-	struct rga_req  RGA_req1;
-} XVPortPrivRec, *XVPortPrivPtr;
-
 
 typedef struct {
 	unsigned char*			fbstart;
@@ -78,24 +42,13 @@ typedef struct {
 	DGAModePtr			pDGAMode;
 	int				nDGAMode;
 	OptionInfoPtr			Options;
+	Bool				WaitForSync;
 
-	void				*Rk30MaliDRI2_private;
-	void				*Rk30DispHardwareCursor_private;
-
-//IAM
-//        XF86VideoAdaptorPtr	adaptor;
-//	ExaDriverPtr 		ExaHW;
-	OvlHWPtr		OvlHW;
-	IPPHWPtr		IPPHW;
-	RGAHWPtr		RGAHW;
-        XVPortPrivPtr		XVport;
-
+	void				*Rk30Mali;
+	void				*Rk30HWC;
+	void				*OvlHW;
+        void				*XVport;
 } FBDevRec, *FBDevPtr;
 
 #define FBDEVPTR(p) ((FBDevPtr)((p)->driverPrivate))
 
-#define RK30_MALI_DRI2(p) ((Rk30MaliDRI2 *) \
-                           (FBDEVPTR(p)->Rk30MaliDRI2_private))
-
-#define RK30_DISP_HWC(p) ((Rk30DispHardwareCursor *) \
-                          (FBDEVPTR(p)->Rk30DispHardwareCursor_private))
