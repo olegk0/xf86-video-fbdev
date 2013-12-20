@@ -14,3 +14,7 @@ MaliX11drv http://malideveloper.arm.com,
 XFree86 4.x driver for S3 chipsets (Ani Joshi <ajoshi@unixbox.com>),
 
 and other...
+
+
+
+Compiled file here https://drive.google.com/folderview?id=0B6QRwjacGTzCZnlsMmQ0ekFkU1U&usp=sharing (subfolder 3.0.36)
