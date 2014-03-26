@@ -1,9 +1,11 @@
-xf86-video-rk30fb v6 
+xf86-video-rk30fb v6.1 
 ================
 
 xf86-video-rk30fb for rk3066 (for testing). Activated hardware cursor and XVideo, also support Mali
 
 XVideo supports hardware scale and color schemes YUY2,UYVY,I420,YV12
+
+Switch HDMI mode on the fly
 
 !!!for this kernel https://github.com/olegk0/rk3x_kernel_3.0.36 !!!
 
