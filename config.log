@@ -14,7 +14,7 @@ hostname = rk3066-dev
 uname -m = armv7l
 uname -r = 3.0.36+
 uname -s = Linux
-uname -v = #10 SMP PREEMPT Thu Dec 12 13:43:31 MSK 2013
+uname -v = #18 SMP PREEMPT Sat Dec 21 15:20:59 MSK 2013
 
 /usr/bin/uname -p = unknown
 /bin/uname -X     = unknown
@@ -46,10 +46,8 @@ configure:2407: result: yes
 configure:2548: checking for a thread-safe mkdir -p
 configure:2587: result: /bin/mkdir -p
 configure:2600: checking for gawk
-configure:2630: result: no
-configure:2600: checking for mawk
-configure:2616: found /usr/bin/mawk
-configure:2627: result: mawk
+configure:2616: found /usr/bin/gawk
+configure:2627: result: gawk
 configure:2638: checking whether make sets $(MAKE)
 configure:2660: result: yes
 configure:2741: checking whether to enable maintainer-specific portions of Makefiles
@@ -1069,7 +1067,7 @@ ac_cv_path_SED=/bin/sed
 ac_cv_path_ac_pt_PKG_CONFIG=/usr/bin/pkg-config
 ac_cv_path_install='/usr/bin/install -c'
 ac_cv_path_mkdir=/bin/mkdir
-ac_cv_prog_AWK=mawk
+ac_cv_prog_AWK=gawk
 ac_cv_prog_CPP='gcc -std=gnu99 -E'
 ac_cv_prog_ac_ct_AR=ar
 ac_cv_prog_ac_ct_CC=gcc
@@ -1151,7 +1149,7 @@ xorg_cv_cc_flag_unused_command_line_argument=no
 ## Output variables. ##
 ## ----------------- ##
 
-ACLOCAL='${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run aclocal-1.11'
+ACLOCAL='${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run aclocal-1.11'
 ADMIN_MAN_DIR='$(mandir)/man$(ADMIN_MAN_SUFFIX)'
 ADMIN_MAN_SUFFIX='8'
 AMDEPBACKSLASH='\'
@@ -1165,10 +1163,10 @@ AM_V='$(V)'
 APP_MAN_DIR='$(mandir)/man$(APP_MAN_SUFFIX)'
 APP_MAN_SUFFIX='1'
 AR='ar'
-AUTOCONF='${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run autoconf'
-AUTOHEADER='${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run autoheader'
-AUTOMAKE='${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run automake-1.11'
-AWK='mawk'
+AUTOCONF='${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run autoconf'
+AUTOHEADER='${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run autoheader'
+AUTOMAKE='${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run automake-1.11'
+AWK='gawk'
 BASE_CFLAGS=' -Wall -Wpointer-arith -Wmissing-declarations -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes -Wnested-externs -Wbad-function-cast -Wold-style-definition -Wdeclaration-after-statement -Wunused -Wuninitialized -Wshadow -Wcast-qual -Wmissing-noreturn -Wmissing-format-attribute -Wredundant-decls -Werror=implicit -Werror=nonnull -Werror=init-self -Werror=main -Werror=missing-braces -Werror=sequence-point -Werror=return-type -Werror=trigraphs -Werror=array-bounds -Werror=write-strings -Werror=address -Werror=int-to-pointer-cast -Werror=pointer-to-int-cast'
 CC='gcc -std=gnu99'
 CCDEPMODE='depmode=gcc3'
@@ -1213,7 +1211,7 @@ LTLIBOBJS=''
 MAINT='#'
 MAINTAINER_MODE_FALSE=''
 MAINTAINER_MODE_TRUE='#'
-MAKEINFO='${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run makeinfo'
+MAKEINFO='${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run makeinfo'
 MANIFEST_TOOL=':'
 MAN_SUBSTS='	-e '\''s|__vendorversion__|"$(PACKAGE_STRING)" "$(XORG_MAN_PAGE)"|'\'' 	-e '\''s|__xorgversion__|"$(PACKAGE_STRING)" "$(XORG_MAN_PAGE)"|'\'' 	-e '\''s|__xservername__|Xorg|g'\'' 	-e '\''s|__xconfigfile__|xorg.conf|g'\'' 	-e '\''s|__projectroot__|$(prefix)|g'\'' 	-e '\''s|__apploaddir__|$(appdefaultdir)|g'\'' 	-e '\''s|__appmansuffix__|$(APP_MAN_SUFFIX)|g'\'' 	-e '\''s|__drivermansuffix__|$(DRIVER_MAN_SUFFIX)|g'\'' 	-e '\''s|__adminmansuffix__|$(ADMIN_MAN_SUFFIX)|g'\'' 	-e '\''s|__libmansuffix__|$(LIB_MAN_SUFFIX)|g'\'' 	-e '\''s|__miscmansuffix__|$(MISC_MAN_SUFFIX)|g'\'' 	-e '\''s|__filemansuffix__|$(FILE_MAN_SUFFIX)|g'\'''
 MISC_MAN_DIR='$(mandir)/man$(MISC_MAN_SUFFIX)'
@@ -1283,7 +1281,7 @@ host_vendor='unknown'
 htmldir='${docdir}'
 includedir='${prefix}/include'
 infodir='${datarootdir}/info'
-install_sh='${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/install-sh'
+install_sh='${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/install-sh'
 libdir='${exec_prefix}/lib'
 libexecdir='${exec_prefix}/libexec'
 localedir='${datarootdir}/locale'

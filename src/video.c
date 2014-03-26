@@ -66,7 +66,7 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short drw_x, short drw_y, short drw
 						short drw_h, short width, short height, int id)
 {       
     FBDevPtr pMxv = FBDEVPTR(pScrn);
-    OvlHWPtr overlay = pMxv->OvlHW;
+//    OvlHWPtr overlay = pMxv->OvlHW;
     XVPortPrivPtr XVport = pMxv->XVport;
 //    CARD32 tres, Nwidth
     int in_mode=0,out_mode=0, xres, yres;
@@ -76,20 +76,16 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short drw_x, short drw_y, short drw
     if(XVport->OvlPg == ERRORL) return FALSE;
 
     XVDBG("alloc overlay - pass \n");
-    XVport->PMemBuf = OvlGetBufByLay(pScrn, XVport->OvlPg);//    XVport->PMemBuf = OvlAllocMemPg(pScrn, BufMem);
+    XVport->PMemBuf = OvlGetBufByLay(pScrn, XVport->OvlPg);
     if(XVport->PMemBuf == NULL){
-	OvlFreeLay(pScrn, XVport->OvlPg);
-	return FALSE;
+	goto err;
     }
     XVDBG("get buf - pass \n");
     XVport->fb_mem = OvlMapBufMem(pScrn, XVport->PMemBuf);
     if(XVport->fb_mem == NULL){
-	OvlFreeLay(pScrn, XVport->OvlPg);
-	return FALSE;
+	goto err;
     }
     XVDBG("map buf - pass \n");
-//    XVport->mio_offset = XVport->PMemBuf->offset_mio;
-    XVport->disp_pitch = overlay->OvlLay[XVport->OvlPg].var.xres_virtual;//TODO
 
     switch(id) {
     case FOURCC_YV12://YVU planar 	needs to be converted into a SemiPlanar format (with HW-RGA or SW)
@@ -107,11 +103,19 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short drw_x, short drw_y, short drw
     }
     
     OvlSetupFb(pScrn, in_mode, out_mode, XVport->OvlPg);
+
+    XVport->disp_pitch = OvlGetVXresByLay(pScrn, XVport->OvlPg);
+    if(XVport->disp_pitch<=0)
+	goto err;
+
     OvlSetColorKey(pScrn, XVport->colorKey);
     OvlEnable(pScrn, XVport->OvlPg, 1);
 
     XVDBG("Setup overlay - pass\n");
     return TRUE;
+err:
+    OvlFreeLay(pScrn, XVport->OvlPg);
+    return FALSE;
 }
 
 //-----------------------------------------------------------------
@@ -268,31 +272,18 @@ static int XVPutImage(ScrnInfoPtr pScrn,
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     XVPortPrivPtr XVport= pMxv->XVport;
-    OvlHWPtr overlay = pMxv->OvlHW;
-    CARD32 x1, x2, y1, y2;
+//    OvlHWPtr overlay = pMxv->OvlHW;
     CARD32 drw_offset,offset, offset2=0, offset3=0;
-    BoxRec dstBox;
     CARD32 tmp, dstPitch;
     Bool ClipEq = FALSE;
 
 
-   /* Clip */
-   x1 = src_x;
-   x2 = src_x + src_w;
-   y1 = src_y;
-   y2 = src_y + src_h;
-
-   dstBox.x1 = drw_x;
-   dstBox.x2 = drw_x + drw_w;
-   dstBox.y1 = drw_y;
-   dstBox.y2 = drw_y + drw_h;
-
-    if(!xf86XVClipVideoHelper(&dstBox, &x1, &x2, &y1, &y2, clipBoxes, width, height))
-	return Success;
+//    if(!xf86XVClipVideoHelper(&dstBox, &x1, &x2, &y1, &y2, clipBoxes, width, height))
+//	return Success;
 
     if(XVport->videoStatus < CLIENT_VIDEO_INIT){
 	XVDBG("video params  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X\n",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
-	XVDBG("video params clipBoxes x1=%d,x2=%d,y1=%d,y2=%d\n",clipBoxes->extents.x1,clipBoxes->extents.x2,clipBoxes->extents.y1,clipBoxes->extents.y2);
+//	XVDBG("video params clipBoxes x1=%d,x2=%d,y1=%d,y2=%d\n",clipBoxes->extents.x1,clipBoxes->extents.x2,clipBoxes->extents.y1,clipBoxes->extents.y2);
 	if(!XVInitStreams(pScrn, drw_x, drw_y, drw_w, drw_h, src_w, src_h, image))
 	    return BadAlloc;
 	XVport->videoStatus = CLIENT_VIDEO_INIT;
@@ -300,9 +291,9 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     }
 
 
-    if(REGION_EQUAL(pScrn->pScreen, &XVport->clip, clipBoxes))
-//    if(XVport->clip.extents.x1 == clipBoxes->extents.x1 && XVport->clip.extents.x2 == clipBoxes->extents.x2 &&
-//	XVport->clip.extents.y1 == clipBoxes->extents.y1 && XVport->clip.extents.y2 == clipBoxes->extents.y2)
+//    if(REGION_EQUAL(pScrn->pScreen, &XVport->clip, clipBoxes))
+    if(XVport->clip.extents.x1 == clipBoxes->extents.x1 && XVport->clip.extents.x2 == clipBoxes->extents.x2 &&
+	XVport->clip.extents.y1 == clipBoxes->extents.y1 && XVport->clip.extents.y2 == clipBoxes->extents.y2)
 	ClipEq = TRUE;
     else
 	XVport->videoStatus = CLIENT_VIDEO_CHNG;
@@ -314,8 +305,7 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     }
 
     if(XVport->videoStatus == CLIENT_VIDEO_CHNG){
-	OvlSetupDrw(pScrn, drw_x, drw_y, drw_w, drw_h, src_w, src_h, XVport->OvlPg, TRUE);//if  draw directly on the screen
-//	OvlSetupDrw(pScrn, drw_x, drw_y, 1920, 1080, src_w, src_h, XVport->OvlPg, FALSE);//if  draw directly on the screen
+	OvlSetupDrw(pScrn, drw_x, drw_y, drw_w, drw_h, src_w, src_h, XVport->OvlPg, FALSE);//if  draw directly on the screen
 	XVport->videoStatus = CLIENT_VIDEO_ON;
 	XVport->Uoffset = src_h * src_w;
 	XVport->Voffset = XVport->Uoffset + (XVport->Uoffset>>2);
@@ -367,8 +357,8 @@ static void XVStopVideo(ScrnInfoPtr pScrn, pointer data, Bool exit)
 	XVDBG("video exit\n");
         XVport->videoStatus = 0;
 	REGION_EMPTY(pScrn->pScreen, &XVport->clip);
-	OvlClearBuf(pScrn, XVport->PMemBuf);
 	OvlUnMapBufMem(pScrn, XVport->PMemBuf);
+	OvlClearBuf(pScrn, XVport->PMemBuf);
 //	OvlReset(pScrn);
 	OvlSetColorKey(pScrn, 0);
 	OvlEnable(pScrn, XVport->OvlPg, 0);
@@ -376,8 +366,6 @@ static void XVStopVideo(ScrnInfoPtr pScrn, pointer data, Bool exit)
     }
     else{
 	XVDBG("video stop\n");
-//TODO	OvlClearBuf(pScrn, 0, FBO1);
-//	OvlClearBuf(pScrn, 1);
     }
 }
 

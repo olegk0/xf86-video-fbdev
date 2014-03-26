@@ -486,7 +486,7 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
 
     ret = OvlCpBufToDisp(pScrn, rk_3d->PMemBuf, rk_3d->OvlPg);
     DebugMsg("OvlCpBufToDisp ret:%d\n", ret);
-    OvlWaitSync(pScrn, rk_3d->OvlPg);
+//    OvlWaitSync(pScrn, rk_3d->OvlPg);
 //}
 }
 

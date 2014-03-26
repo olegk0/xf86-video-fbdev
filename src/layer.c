@@ -28,7 +28,8 @@
 #include "os.h"
 
 #include "layer.h"
-#include "rk3066.h"
+//#include "rk3066.h"
+#include "rk3066.c"
 #include "fbdev_priv.h"
 #include "mali_dri2.h"
 #include <sys/mman.h>
@@ -105,7 +106,16 @@ OvlMemPgPtr OvlGetBufByLay(ScrnInfoPtr pScrn, OvlLayPg layout)
 }
 
 //--------------------------------------------------------------------------------
+int OvlGetVXresByLay(ScrnInfoPtr pScrn, OvlLayPg layout)
+{
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
+    OvlHWPtr overlay = pMxv->OvlHW;
 
+    if(layout < OVLs && layout >= 0)
+	return overlay->OvlLay[layout].var.xres_virtual;
+    else
+	return -1;
+}
 
 //++++++++++++++++++++++++++++++++++++IPP++++++++++++++++++++++++++++++++++++++++++
 int ovlInitIPPHW(ScrnInfoPtr pScrn)
@@ -478,6 +488,19 @@ int ovlSetMode(ScrnInfoPtr pScrn, unsigned short xres, unsigned short yres, unsi
 	ovlSelHwMods(pScrn, overlay->cur_var.nonstd, layout, DST_MODE);
     return ret;
 }
+//--------------------------------------------------------------------------------
+static Bool ovlUpdVarOnChangeRes(ScrnInfoPtr pScrn, OvlLayPg layout)
+{
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
+    OvlHWPtr overlay = pMxv->OvlHW;
+
+    if(overlay->OvlLay[layout].ResChange){
+	memcpy(&overlay->OvlLay[layout].var, &overlay->cur_var, sizeof(struct fb_var_screeninfo));
+	overlay->OvlLay[layout].ResChange = FALSE;
+	return TRUE;
+    }
+    return FALSE;
+}
 //----------------------------------------------------------------------------------
 int OvlSetupFb(ScrnInfoPtr pScrn, int SrcFrmt, int DstFrmt, OvlLayPg layout)
 {
@@ -486,6 +509,7 @@ int OvlSetupFb(ScrnInfoPtr pScrn, int SrcFrmt, int DstFrmt, OvlLayPg layout)
 
     if(layout >= OVLs || layout < 0)
 	return -1;
+    ovlUpdVarOnChangeRes(pScrn, layout);
     ovlRgaInitReg(pScrn, &overlay->OvlLay[layout].RGA_req, /*SrcYAddr*/0, 0, 0,
 	FbByLay(layout)->OvlMemPg->phadr_mem, 0, 0, 0, 0, overlay->OvlLay[layout].var.xres_virtual/*TODO SRC*/, overlay->OvlLay[layout].var.xres_virtual);
 //    if(DstFrmt)
@@ -725,12 +749,17 @@ ump_secure_id ovlGetUmpId(ScrnInfoPtr pScrn, OvlMemPg pg)
 int OvlUpdSavMod(ScrnInfoPtr pScrn)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
-    int ret=-1;
+    int ret=-1,tmp;
     OvlLayPg i;
 
+    OVLDBG("***Res change***\n");
     if(pMxv->OvlHW != NULL){
 	OvlHWPtr overlay = pMxv->OvlHW;
     	ret = ioctl(overlay->OvlFb[UserInterfaceFB].fd, FBIOGET_VSCREENINFO, &overlay->cur_var);
+
+	tmp = resToHDMImodes(overlay->cur_var.xres,overlay->cur_var.yres);
+	ioctl(overlay->OvlFb[UserInterfaceFB].fd, FBIOSET_HDMI_MODE, &tmp);//use HDMI scaling
+
 //	overlay->cur_var.activate = 0;
 	for(i=0;i<OVLs;i++)
 	    overlay->OvlLay[i].ResChange = TRUE;
@@ -741,7 +770,7 @@ int OvlUpdSavMod(ScrnInfoPtr pScrn)
 //	    ret = ioctl(overlay->fd_o2, FBIOPUT_VSCREENINFO, &overlay->cur_var);
 //	}
 	overlay->ResChange = TRUE;
-	OVLDBG("****Change res to %dx%d,  ret=%d ***\n", overlay->cur_var.xres, overlay->cur_var.yres, ret);
+	OVLDBG("Resolution changed to %dx%d,  ret=%d ***\n", overlay->cur_var.xres, overlay->cur_var.yres, ret);
     }
     return ret;
 }
@@ -934,8 +963,6 @@ void InitHWAcl(ScreenPtr pScreen)
 	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "HW:Error init ovl\n");
 	return;
     }
-    else
-	xf86DrvMsg( pScrn->scrnIndex, X_INFO, "HW:Main setup ovl - pass\n");
 
     overlay = pMxv->OvlHW;
     xf86DrvMsg( pScrn->scrnIndex, X_INFO, "HW:Try init ipp\n");

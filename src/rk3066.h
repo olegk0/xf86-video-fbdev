@@ -43,6 +43,7 @@ RGB565
 #define FB_DEV_IPP	"/dev/rk29-ipp"
 #define FB_DEV_RGA	"/dev/rga"
 
+
 enum {
     FBUI,
     FBO1,
@@ -66,6 +67,7 @@ enum {
 #define FBIOSET_DISP_PSET	0x5011
 #define FBIOSET_FBMEM_CLR	0x5013
 #define FBIOSET_FBMEM_OFFS_SYNC	0x5012
+#define FBIOSET_HDMI_MODE	0x5014
 #define GET_UMP_SECURE_ID_BUF1	_IOWR('m', 310, unsigned int)
 #define GET_UMP_SECURE_ID_BUF2	_IOWR('m', 311, unsigned int)
 #define GET_UMP_SECURE_ID_BUFn	_IOWR('m', 312, unsigned int)

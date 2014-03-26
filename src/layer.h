@@ -122,6 +122,7 @@ int OvlCopyHWBufCF(ScrnInfoPtr pScrn, uint32_t SrcYAddr, uint32_t SrcUVAddr, uin
 				int Drw_w, int Drw_h, int Drw_x, int Drw_y, int Src_vir, int Dst_vir, Bool useMMU);
 //-------------------------------------------------------------
 OvlMemPgPtr OvlGetBufByLay(ScrnInfoPtr pScrn, OvlLayPg layout);
+int OvlGetVXresByLay(ScrnInfoPtr pScrn, OvlLayPg layout);
 //-------------------------------------------------------------
 int OvlWaitSync(ScrnInfoPtr pScrn, OvlLayPg layout);
 int OvlCpBufToDisp(ScrnInfoPtr pScrn, OvlMemPgPtr PMemPg, OvlLayPg layout);

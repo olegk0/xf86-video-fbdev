@@ -153,7 +153,7 @@ distuninstallcheck_listfiles = find . -type f -print
 am__distuninstallcheck_listfiles = $(distuninstallcheck_listfiles) \
   | sed 's|^\./|$(prefix)/|' | grep -v '$(infodir)/dir$$'
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run aclocal-1.11
+ACLOCAL = ${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run aclocal-1.11
 ADMIN_MAN_DIR = $(mandir)/man$(ADMIN_MAN_SUFFIX)
 ADMIN_MAN_SUFFIX = 8
 AMTAR = $${TAR-tar}
@@ -161,10 +161,10 @@ AM_DEFAULT_VERBOSITY = 0
 APP_MAN_DIR = $(mandir)/man$(APP_MAN_SUFFIX)
 APP_MAN_SUFFIX = 1
 AR = ar
-AUTOCONF = ${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run autoconf
-AUTOHEADER = ${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run autoheader
-AUTOMAKE = ${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run automake-1.11
-AWK = mawk
+AUTOCONF = ${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run autoconf
+AUTOHEADER = ${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run autoheader
+AUTOMAKE = ${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run automake-1.11
+AWK = gawk
 BASE_CFLAGS =  -Wall -Wpointer-arith -Wmissing-declarations -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes -Wnested-externs -Wbad-function-cast -Wold-style-definition -Wdeclaration-after-statement -Wunused -Wuninitialized -Wshadow -Wcast-qual -Wmissing-noreturn -Wmissing-format-attribute -Wredundant-decls -Werror=implicit -Werror=nonnull -Werror=init-self -Werror=main -Werror=missing-braces -Werror=sequence-point -Werror=return-type -Werror=trigraphs -Werror=array-bounds -Werror=write-strings -Werror=address -Werror=int-to-pointer-cast -Werror=pointer-to-int-cast
 CC = gcc -std=gnu99
 CCDEPMODE = depmode=gcc3
@@ -208,7 +208,7 @@ LIPO =
 LN_S = ln -s
 LTLIBOBJS = 
 MAINT = #
-MAKEINFO = ${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run makeinfo
+MAKEINFO = ${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run makeinfo
 MANIFEST_TOOL = :
 MAN_SUBSTS = 	-e 's|__vendorversion__|"$(PACKAGE_STRING)" "$(XORG_MAN_PAGE)"|' 	-e 's|__xorgversion__|"$(PACKAGE_STRING)" "$(XORG_MAN_PAGE)"|' 	-e 's|__xservername__|Xorg|g' 	-e 's|__xconfigfile__|xorg.conf|g' 	-e 's|__projectroot__|$(prefix)|g' 	-e 's|__apploaddir__|$(appdefaultdir)|g' 	-e 's|__appmansuffix__|$(APP_MAN_SUFFIX)|g' 	-e 's|__drivermansuffix__|$(DRIVER_MAN_SUFFIX)|g' 	-e 's|__adminmansuffix__|$(ADMIN_MAN_SUFFIX)|g' 	-e 's|__libmansuffix__|$(LIB_MAN_SUFFIX)|g' 	-e 's|__miscmansuffix__|$(MISC_MAN_SUFFIX)|g' 	-e 's|__filemansuffix__|$(FILE_MAN_SUFFIX)|g'
 MISC_MAN_DIR = $(mandir)/man$(MISC_MAN_SUFFIX)
@@ -243,10 +243,10 @@ VERSION = 0.5.1
 XORG_CFLAGS = -fvisibility=hidden -I/usr/include/pixman-1 -I/usr/include/xorg  
 XORG_LIBS =  
 XORG_MAN_PAGE = X Version 11
-abs_builddir = /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev
-abs_srcdir = /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev
-abs_top_builddir = /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev
-abs_top_srcdir = /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev
+abs_builddir = /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev
+abs_srcdir = /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev
+abs_top_builddir = /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev
+abs_top_srcdir = /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev
 ac_ct_AR = ar
 ac_ct_CC = gcc
 ac_ct_DUMPBIN = 
@@ -275,7 +275,7 @@ host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/install-sh
+install_sh = ${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale

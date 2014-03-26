@@ -437,11 +437,11 @@ Copyright (C) 2012 Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 
-ac_pwd='/usr/src/my/video/drv/last/lite/6/xf86-video-fbdev'
+ac_pwd='/usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev'
 srcdir='.'
 INSTALL='/usr/bin/install -c'
 MKDIR_P='/bin/mkdir -p'
-AWK='mawk'
+AWK='gawk'
 test -n "$AWK" || AWK=awk
 # The default lists apply if the user does not specify any file.
 ac_need_defaults=:
@@ -919,17 +919,17 @@ S["am__tar"]="$${TAR-tar} chof - \"$$tardir\""
 S["AMTAR"]="$${TAR-tar}"
 S["am__leading_dot"]="."
 S["SET_MAKE"]=""
-S["AWK"]="mawk"
+S["AWK"]="gawk"
 S["mkdir_p"]="/bin/mkdir -p"
 S["MKDIR_P"]="/bin/mkdir -p"
 S["INSTALL_STRIP_PROGRAM"]="$(install_sh) -c -s"
 S["STRIP"]="strip"
-S["install_sh"]="${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/install-sh"
-S["MAKEINFO"]="${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run makeinfo"
-S["AUTOHEADER"]="${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run autoheader"
-S["AUTOMAKE"]="${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run automake-1.11"
-S["AUTOCONF"]="${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run autoconf"
-S["ACLOCAL"]="${SHELL} /usr/src/my/video/drv/last/lite/6/xf86-video-fbdev/missing --run aclocal-1.11"
+S["install_sh"]="${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/install-sh"
+S["MAKEINFO"]="${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run makeinfo"
+S["AUTOHEADER"]="${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run autoheader"
+S["AUTOMAKE"]="${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run automake-1.11"
+S["AUTOCONF"]="${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run autoconf"
+S["ACLOCAL"]="${SHELL} /usr/src/my/video/drv/last/lite/6.1/xf86-video-fbdev/missing --run aclocal-1.11"
 S["VERSION"]="0.5.1"
 S["PACKAGE"]="xf86-video-fbdev"
 S["CYGPATH_W"]="echo"

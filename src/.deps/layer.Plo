@@ -92,7 +92,7 @@ layer.lo: layer.c /usr/include/unistd.h /usr/include/features.h \
  /usr/include/linux/stddef.h \
  /usr/include/arm-linux-gnueabihf/asm/posix_types.h \
  /usr/include/linux/i2c.h ump/ump.h ump/ump_platform.h ump/ump_ref_drv.h \
- ump/ump.h rk3066.h fbdev_priv.h compat-api.h \
+ ump/ump.h rk3066.c rk3066.h fbdev_priv.h compat-api.h \
  /usr/include/xorg/xf86fbman.h mali_dri2.h /usr/include/xorg/dri2.h \
  /usr/include/X11/extensions/dri2tokens.h uthash.h \
  /usr/include/arm-linux-gnueabihf/sys/mman.h \
@@ -396,6 +396,8 @@ ump/ump_platform.h:
 ump/ump_ref_drv.h:
 
 ump/ump.h:
+
+rk3066.c:
 
 rk3066.h:
 
