@@ -1,2 +1,0 @@
-make
-cp ./.libs/rk30fb_drv.so /usr/lib/xorg/modules/drivers/

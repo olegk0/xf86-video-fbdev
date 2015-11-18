@@ -459,7 +459,8 @@ int OvlFlushPg(ScrnInfoPtr pScrn, OvlMemPgPtr PMemPg, int mode)
 	return -1;
 }
 //--------------------------------------------------------------------
-int ovlSetMode(ScrnInfoPtr pScrn, unsigned short xres, unsigned short yres, unsigned char mode, OvlLayPg layout)
+int ovlSetMode(ScrnInfoPtr pScrn, unsigned short xres, unsigned short yres,
+	     unsigned char mode, OvlLayPg layout)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     OvlHWPtr overlay = pMxv->OvlHW;
@@ -514,6 +515,7 @@ int OvlSetupFb(ScrnInfoPtr pScrn, int SrcFrmt, int DstFrmt, OvlLayPg layout)
 	FbByLay(layout)->OvlMemPg->phadr_mem, 0, 0, 0, 0, overlay->OvlLay[layout].var.xres_virtual/*TODO SRC*/, overlay->OvlLay[layout].var.xres_virtual);
 //    if(DstFrmt)
 	ovlSetMode(pScrn, 0 , 0/*TODO*/, DstFrmt, layout);
+//	ovlSetMode(pScrn, overlay->cur_var.xres,overlay->cur_var.yres, DstFrmt, layout);	
     if(!SrcFrmt)
 	SrcFrmt = overlay->OvlLay[layout].var.nonstd;
     ovlSelHwMods(pScrn, SrcFrmt, layout, SRC_MODE);

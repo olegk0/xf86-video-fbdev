@@ -56,7 +56,9 @@ enum {
 */
 
 #define PANEL_SIZE_X 1920
+//#define PANEL_SIZE_X 1280
 #define PANEL_SIZE_Y 1080
+//#define PANEL_SIZE_Y 720
 
 #define FB_MAXPGSIZE PANEL_SIZE_X*PANEL_SIZE_Y*4
 

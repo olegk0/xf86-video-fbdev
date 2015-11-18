@@ -267,8 +267,8 @@ XVCopyPlanarToFb(const void *src_Y,const void *src_U,const void *src_V, void *ds
 static int XVPutImage(ScrnInfoPtr pScrn,
           short src_x, short src_y, short drw_x, short drw_y,
           short src_w, short src_h, short drw_w, short drw_h,
-          int image, char *buf, short width, short height,
-          Bool sync, RegionPtr clipBoxes, pointer data )
+          int image, unsigned char *buf, short width, short height,
+          Bool sync, RegionPtr clipBoxes, pointer data, DrawablePtr pDraw)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     XVPortPrivPtr XVport= pMxv->XVport;
@@ -282,7 +282,7 @@ static int XVPutImage(ScrnInfoPtr pScrn,
 //	return Success;
 
     if(XVport->videoStatus < CLIENT_VIDEO_INIT){
-	XVDBG("video params  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X\n",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
+	XVDBG("Video init  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X\n",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
 //	XVDBG("video params clipBoxes x1=%d,x2=%d,y1=%d,y2=%d\n",clipBoxes->extents.x1,clipBoxes->extents.x2,clipBoxes->extents.y1,clipBoxes->extents.y2);
 	if(!XVInitStreams(pScrn, drw_x, drw_y, drw_w, drw_h, src_w, src_h, image))
 	    return BadAlloc;
@@ -305,6 +305,7 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     }
 
     if(XVport->videoStatus == CLIENT_VIDEO_CHNG){
+	XVDBG("Video change  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X\n",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
 	OvlSetupDrw(pScrn, drw_x, drw_y, drw_w, drw_h, src_w, src_h, XVport->OvlPg, FALSE);//if  draw directly on the screen
 	XVport->videoStatus = CLIENT_VIDEO_ON;
 	XVport->Uoffset = src_h * src_w;
@@ -414,6 +415,7 @@ XVQueryBestSize(ScrnInfoPtr pScrn, Bool motion,
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     OvlHWPtr	overlay = pMxv->OvlHW;
 
+    XVDBG("QueryBestSize  vidW=%d, vidH=%d, xres=%d, yres=%d\n",vidW,vidH,overlay->cur_var.xres,overlay->cur_var.yres);
     if(drawW > overlay->cur_var.xres)
 	*retW = overlay->cur_var.xres;
     else

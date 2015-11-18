@@ -22,10 +22,10 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([xf86-video-fbdev],
-        [0.5.1],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
-        [xf86-video-fbdev])
+AC_INIT([xf86-video-rk30fb],
+        [0.6.1],
+        [https://github.com/olegk0/xf86-video-fbdev],
+        [xf86-video-rk30fb])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR(.)
@@ -66,18 +66,6 @@ PKG_CHECK_MODULES(XORG, [xorg-server >= 1.0.99.901 xproto fontsproto $REQUIRED_M
 
 save_CFLAGS="$CFLAGS"
 CFLAGS="$XORG_CFLAGS"
-AC_CHECK_DECL(xf86ConfigIsaEntity,
-	      [AC_DEFINE(HAVE_ISA, 1, [Have ISA support])],
-	      [],
-	      [#include "xf86.h"])
-CFLAGS="$save_CFLAGS"
-
-AM_CONDITIONAL(PCIACCESS, [test "x$PCIACCESS" = xyes])
-if test "x$PCIACCESS" = xyes; then
-    AC_DEFINE(PCIACCESS, 1, [Use libpciaccess])
-    PKG_CHECK_MODULES([PCIACCESS], [pciaccess >= 0.8.0])
-    XORG_CFLAGS="$XORG_CFLAGS $PCIACCESS_CFLAGS"
-fi
 
 # Checks for libraries.
 

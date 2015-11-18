@@ -23,7 +23,7 @@
 #include "xf86fbman.h"
 //#include "exa.h"
 
-//#define DEBUG
+#define DEBUG
 #define PAGE_MASK    (getpagesize() - 1)
 
 typedef struct {
