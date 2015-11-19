@@ -39,4 +39,4 @@ rk30fb_drv_la_SOURCES = \
          video.c \
          video.h \
          layer.c \
-         layer.h
+         layer.h 

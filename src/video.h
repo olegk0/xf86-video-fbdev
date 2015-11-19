@@ -23,7 +23,7 @@
 #include "fb.h"
 #include "layer.h"
 
-
+#define UPDATE_BOX_CNT	60
 typedef struct {
         unsigned char brightness;
         unsigned char contrast;
@@ -40,27 +40,22 @@ typedef struct {
 	uint32_t	w_src;
 	uint32_t	h_src;
 
-//	uint32_t	pixels;
 	uint32_t	Uoffset;
 	uint32_t	Voffset;
 
-//	int npixels;
-//	int nlines;
-//	Bool	FlScr;
-//	int	rga_pa;
-//	int	IPP_mode;
-//	int	RGA_mode;
-
-    OvlMemPgPtr		PMemBuf;
+    OvlMemPgPtr		FrontMemBuf;
+    OvlMemPgPtr		BackMemBuf;
+    void*			FrontMapBuf;
+    void*			BackMapBuf;
     OvlLayPg		OvlPg;
-    unsigned char	*fb_mem;
-//    uint32_t		mio_offset;
-    int			disp_pitch;
+    int				disp_pitch;
+    Bool			frame_fl;
+    Bool			debug;
 } XVPortPrivRec, *XVPortPrivPtr;
 
 
 
-void InitXVideo(ScreenPtr pScreen);
+void InitXVideo(ScreenPtr pScreen, Bool debug);
 void CloseXVideo(ScreenPtr pScreen);
 
 #define LARRAY_SIZE(a) (sizeof((a)) / (sizeof(*(a))))

@@ -1,8 +1,6 @@
 #ifndef _RGA_DRIVER_H_
 #define _RGA_DRIVER_H_
 
-#include <stdint.h>
-
 #define RGA_BLIT_SYNC	0x5017
 #define RGA_BLIT_ASYNC  0x5018
 #define RGA_FLUSH       0x5019
@@ -22,10 +20,8 @@
 #define rgaNO_ERROR(status)			(status >= 0)
 #define rgaIS_SUCCESS(status)		(status == 0)
 
-/*#define	uint8_t	unsigned char
-#define	uint16_t	unsigned short
-#define	uint32_t	unsigned int
-*/
+
+
 /* RGA process mode enum */
 enum
 {    

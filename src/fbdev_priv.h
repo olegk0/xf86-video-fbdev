@@ -21,34 +21,44 @@
 #include "include/rga.h"
 #include "xf86xv.h"
 #include "xf86fbman.h"
-//#include "exa.h"
+#include "fbdevhw.h"
 
 #define DEBUG
+
+#define INFMSG(format, args...)		xf86DrvMsg(pScrn->scrnIndex, X_INFO, format "\n", ## args)
+#define WRNMSG(format, args...)		xf86DrvMsg(pScrn->scrnIndex, X_WARNING, format "\n", ## args)
+#define ERRMSG(format, args...)		xf86DrvMsg(pScrn->scrnIndex, X_ERROR, format "\n", ## args)
+
 #define PAGE_MASK    (getpagesize() - 1)
 
+#define MFREE(p)	{free(p);p=NULL;}
+
 typedef struct {
-	unsigned char*			fbstart;
-	unsigned char*			fbmem;
-	int				fboff;
-	int				lineLength;
-	int				rotate;
+	unsigned char*		fbstart;
+	unsigned char*		fbmem;
+	int					fboff;
+	int					lineLength;
+	int					rotate;
 	Bool				shadowFB;
 	void				*shadow;
-	CloseScreenProcPtr		CloseScreen;
+	CloseScreenProcPtr	CloseScreen;
 	CreateScreenResourcesProcPtr	CreateScreenResources;
 	void				(*PointerMoved)(SCRN_ARG_TYPE arg, int x, int y);
-	EntityInfoPtr			pEnt;
+	EntityInfoPtr		pEnt;
 	/* DGA info */
 	DGAModePtr			pDGAMode;
-	int				nDGAMode;
-	OptionInfoPtr			Options;
+	int					nDGAMode;
+	OptionInfoPtr		Options;
 	Bool				WaitForSync;
 
 	void				*Rk30Mali;
 	void				*Rk30HWC;
 	void				*OvlHW;
-        void				*XVport;
+    void				*XVport;
+    int					DebugLvl;
+
 } FBDevRec, *FBDevPtr;
 
 #define FBDEVPTR(p) ((FBDevPtr)((p)->driverPrivate))
+
 

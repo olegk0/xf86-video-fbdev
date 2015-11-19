@@ -17,6 +17,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "include/rk30_ump.h"
 /*
 fb0:win0	
 fb1:win1	
@@ -37,12 +38,17 @@ RGB565
 1bpp
 
 */
+#define USI_MIN_ALLOC_SIZE		(UMP_MINIMUM_SIZE * 100)
+
 #define FB_DEV_O2	"/dev/fb2" //second overlay(not scalable)
 #define FB_DEV_O1	"/dev/fb1" //main overlay
 #define FB_DEV_UI	"/dev/fb0"
 #define FB_DEV_IPP	"/dev/rk29-ipp"
 #define FB_DEV_RGA	"/dev/rga"
+#define FB_DEV_USI	"/dev/"USI_UMP_DRV_NAME
+#define FB_SYS_HDMI	"/sys/class/display/HDMI"
 
+#define HDMI_MODE_TMPL	"%dx%dp-60"
 
 enum {
     FBUI,
@@ -62,21 +68,15 @@ enum {
 
 #define FB_MAXPGSIZE PANEL_SIZE_X*PANEL_SIZE_Y*4
 
-#define FBIOGET_PANEL_SIZE	0x5001
-#define FBIOGET_OVERLAY_STATE   0X4619
-#define FBIOSET_YUV_ADDR	0x5002
+#define RK_FBIOGET_PANEL_SIZE	0x5001
+#define RK_FBIOSET_YUV_ADDR	0x5002
 #define FBIOSET_COLORKEY	0x5010
 #define FBIOSET_DISP_PSET	0x5011
-#define FBIOSET_FBMEM_CLR	0x5013
-#define FBIOSET_FBMEM_OFFS_SYNC	0x5012
-#define FBIOSET_HDMI_MODE	0x5014
-#define GET_UMP_SECURE_ID_BUF1	_IOWR('m', 310, unsigned int)
-#define GET_UMP_SECURE_ID_BUF2	_IOWR('m', 311, unsigned int)
-#define GET_UMP_SECURE_ID_BUFn	_IOWR('m', 312, unsigned int)
 
-#define FBIOSET_OVERLAY_STATE   0x5018
-#define FBIOSET_ENABLE          0x5019
-#define FBIOGET_ENABLE          0x5020
+
+#define RK_FBIOSET_OVERLAY_STATE   0x5018
+#define RK_FBIOSET_ENABLE          0x5019
+#define RK_FBIOGET_ENABLE          0x5020
 #define FBIO_WAITFORVSYNC       _IOW('F', 0x20, __u32)
 
 typedef struct
@@ -90,13 +90,14 @@ typedef struct
 } SFbioDispSet;
 
 
-
-
 enum {
     RGBA_8888          = 1,
     RGBX_8888          = 2,
     RGB_888            = 3,
     RGB_565            = 4,
+	BGRA_8888          = 5,
+	RGBA_5551          = 6,
+	RGBA_4444          = 7,
     /* Legacy formats (deprecated), used by ImageFormat.java */
     YCbCr_422_SP       = 0x10, // NV16	16
     YCrCb_NV12_SP      = 0x20, // YUY2	32

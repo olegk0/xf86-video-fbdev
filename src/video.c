@@ -36,7 +36,7 @@
 #include <sys/mman.h>
 
 #ifdef DEBUG
-#define XVDBG(format, args...)		xf86DrvMsg(pScrn->scrnIndex, X_WARNING, format, ## args)
+#define XVDBG(format, args...)		{if(XVport->debug) WRNMSG(format, ## args);}
 #else
 #define XVDBG(format, args...)
 #endif
@@ -66,52 +66,55 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short drw_x, short drw_y, short drw
 						short drw_h, short width, short height, int id)
 {       
     FBDevPtr pMxv = FBDEVPTR(pScrn);
-//    OvlHWPtr overlay = pMxv->OvlHW;
     XVPortPrivPtr XVport = pMxv->XVport;
-//    CARD32 tres, Nwidth
     int in_mode=0,out_mode=0, xres, yres;
 
-    XVDBG("Try setup overlay \n");
-    XVport->OvlPg = OvlAllocLay(pScrn, SCALEL);
-    if(XVport->OvlPg == ERRORL) return FALSE;
+    XVDBG("setup overlay ");
+    XVport->OvlPg = OvlAllocLay(pScrn, SCALEL, ALC_FRONT_BACK_FB);
+    if(XVport->OvlPg == ERRORL)
+    	return FALSE;
 
-    XVDBG("alloc overlay - pass \n");
-    XVport->PMemBuf = OvlGetBufByLay(pScrn, XVport->OvlPg);
-    if(XVport->PMemBuf == NULL){
-	goto err;
+    XVDBG("alloc overlay - pass ");
+    XVport->FrontMemBuf = OvlGetBufByLay(pScrn, XVport->OvlPg, FRONT_FB);
+    XVport->BackMemBuf = OvlGetBufByLay(pScrn, XVport->OvlPg, BACK_FB);
+/*    if(!XVport->FrontMemBuf){
+    	goto err;
+    }*/
+    XVDBG("get buf - pass ");
+    XVport->FrontMapBuf = OvlMapBufMem(pScrn, XVport->FrontMemBuf);
+    XVport->BackMapBuf = OvlMapBufMem(pScrn, XVport->BackMemBuf);
+    if(!XVport->FrontMapBuf || !XVport->BackMapBuf){
+    	goto err;
     }
-    XVDBG("get buf - pass \n");
-    XVport->fb_mem = OvlMapBufMem(pScrn, XVport->PMemBuf);
-    if(XVport->fb_mem == NULL){
-	goto err;
-    }
-    XVDBG("map buf - pass \n");
+    XVport->frame_fl = FALSE;
+    XVDBG("map buf - pass ");
 
     switch(id) {
     case FOURCC_YV12://YVU planar 	needs to be converted into a SemiPlanar format (with HW-RGA or SW)
     case FOURCC_I420://YUV identical to YV12 except that the U and V plane order is reversed
-	in_mode = YCrCb_NV12_P;//SP disp format
-	out_mode = YCrCb_NV12_SP;//?
+    	in_mode = YCrCb_NV12_P;//SP disp format
+    	out_mode = YCrCb_NV12_SP;//?
         break;
     case FOURCC_UYVY://packed U0Y0V0Y1 U2Y2V2Y3		needs to unpacking in SemiPlanar
     case FOURCC_YUY2://packed low Y0U0Y1V0 hi
 //	in_mode = 0;
-	out_mode = YCbCr_422_SP;
-	break;
+    	out_mode = YCbCr_422_SP;
+    	break;
     default:
-	out_mode = RGBX_8888;
+    	out_mode = RGBX_8888;
     }
     
-    OvlSetupFb(pScrn, in_mode, out_mode, XVport->OvlPg);
+    OvlSetupFb(pScrn, XVport->OvlPg, in_mode, out_mode, 0, 0);
 
     XVport->disp_pitch = OvlGetVXresByLay(pScrn, XVport->OvlPg);
     if(XVport->disp_pitch<=0)
-	goto err;
+    	goto err;
+    XVDBG("Pitch:%d",XVport->disp_pitch);
 
     OvlSetColorKey(pScrn, XVport->colorKey);
     OvlEnable(pScrn, XVport->OvlPg, 1);
 
-    XVDBG("Setup overlay - pass\n");
+    XVDBG("Setup overlay - pass");
     return TRUE;
 err:
     OvlFreeLay(pScrn, XVport->OvlPg);
@@ -130,7 +133,7 @@ XVCopyPackedToFb(const void *src, void *dst_Y, void *dst_UV,/* CARD32 dst_offset
     Fvars[1]= h;//lines;
     Fvars[2]= (w/*px*/)<<1;//SrcPitch;
     Fvars[3]= dstPitch/*px*/;
-
+#ifdef __arm__
         asm volatile (
         "up0: \n\t"
         "mov	v5,#0 \n\t"//counter
@@ -179,7 +182,7 @@ XVCopyPackedToFb(const void *src, void *dst_Y, void *dst_UV,/* CARD32 dst_offset
         : "v1","v2","v3","v6","v5","memory"
 
         );
-
+#endif
 }
 //-----------------------------------------------------------------
 static void
@@ -191,7 +194,7 @@ XVCopyPlanarToFb(const void *src_Y,const void *src_U,const void *src_V, void *ds
     Fvars[1]= h;//lines;
     Fvars[2]= (w/*px*/);//SrcPitch;
     Fvars[3]= dstPitch/*px*/;
-
+#ifdef __arm__
         asm volatile (
 //************Y block
         "ldr	v3,[%[Fvars],%[Lines]]\n\t"
@@ -260,7 +263,7 @@ XVCopyPlanarToFb(const void *src_Y,const void *src_U,const void *src_V, void *ds
         : "a1","v1","v2","v3","v5","v6","memory"
 
         );
-
+#endif
 }
 
 //-----------------------------------------------------------------
@@ -272,77 +275,89 @@ static int XVPutImage(ScrnInfoPtr pScrn,
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     XVPortPrivPtr XVport= pMxv->XVport;
-//    OvlHWPtr overlay = pMxv->OvlHW;
     CARD32 drw_offset,offset, offset2=0, offset3=0;
     CARD32 tmp, dstPitch;
-    Bool ClipEq = FALSE;
+    Bool ClipEq = TRUE;
+    void *fb_mem;
+    CARD32 offset_mio;
 
+    drw_x &= ~1;
+    drw_y &= ~1;
 
 //    if(!xf86XVClipVideoHelper(&dstBox, &x1, &x2, &y1, &y2, clipBoxes, width, height))
 //	return Success;
 
     if(XVport->videoStatus < CLIENT_VIDEO_INIT){
-	XVDBG("Video init  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X\n",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
-//	XVDBG("video params clipBoxes x1=%d,x2=%d,y1=%d,y2=%d\n",clipBoxes->extents.x1,clipBoxes->extents.x2,clipBoxes->extents.y1,clipBoxes->extents.y2);
-	if(!XVInitStreams(pScrn, drw_x, drw_y, drw_w, drw_h, src_w, src_h, image))
-	    return BadAlloc;
-	XVport->videoStatus = CLIENT_VIDEO_INIT;
+    	XVDBG("Video init  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X",
+			drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
+    	if(!XVInitStreams(pScrn, drw_x, drw_y, drw_w, drw_h, src_w, src_h, image))
+    		return BadAlloc;
+    	XVport->videoStatus = CLIENT_VIDEO_INIT;
 //        REGION_COPY(pScrn->pScreen, &XVport->clip, clipBoxes);
     }
 
 
-//    if(REGION_EQUAL(pScrn->pScreen, &XVport->clip, clipBoxes))
-    if(XVport->clip.extents.x1 == clipBoxes->extents.x1 && XVport->clip.extents.x2 == clipBoxes->extents.x2 &&
-	XVport->clip.extents.y1 == clipBoxes->extents.y1 && XVport->clip.extents.y2 == clipBoxes->extents.y2)
-	ClipEq = TRUE;
-    else
-	XVport->videoStatus = CLIENT_VIDEO_CHNG;
+    if(!RegionEqual(&XVport->clip, clipBoxes)){
+    	XVport->videoStatus = CLIENT_VIDEO_CHNG;
+    	RegionCopy(&XVport->clip, clipBoxes);
+    }
 
-    if((XVport->w_src != src_w) || (XVport->h_src != src_h)){
-	XVport->videoStatus = CLIENT_VIDEO_CHNG;
-	XVport->w_src = src_w;
-	XVport->h_src = src_h;
+    if((XVport->w_src != src_w) || (XVport->h_src != src_h)||(XVport->x_drw != drw_x) || (XVport->y_drw != drw_y)){
+    	XVport->videoStatus = CLIENT_VIDEO_CHNG;
+    	XVport->w_src = src_w;
+    	XVport->h_src = src_h;
+    	XVport->x_drw = drw_x;
+    	XVport->y_drw = drw_y;
     }
 
     if(XVport->videoStatus == CLIENT_VIDEO_CHNG){
-	XVDBG("Video change  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X\n",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
-	OvlSetupDrw(pScrn, drw_x, drw_y, drw_w, drw_h, src_w, src_h, XVport->OvlPg, FALSE);//if  draw directly on the screen
-	XVport->videoStatus = CLIENT_VIDEO_ON;
-	XVport->Uoffset = src_h * src_w;
-	XVport->Voffset = XVport->Uoffset + (XVport->Uoffset>>2);
-    }
-/*
-    src_h = src_h & ~1;
-    src_w = src_w & ~3;
-    drw_h = drw_h & ~1;
-    drw_w = drw_w & ~1;
-*/
-    switch(image) {
-    case FOURCC_I420:
-	XVCopyPlanarToFb(buf,buf+XVport->Uoffset,buf+XVport->Voffset, XVport->fb_mem,
-			XVport->fb_mem+XVport->PMemBuf->offset_mio, XVport->disp_pitch, src_h, src_w);
-        break; 
-    case FOURCC_YV12:
-	XVCopyPlanarToFb(buf,buf+XVport->Voffset,buf+XVport->Uoffset, XVport->fb_mem,
-			XVport->fb_mem+XVport->PMemBuf->offset_mio, XVport->disp_pitch, src_h, src_w);
-        break; 
-    case FOURCC_YUY2:
-	XVCopyPackedToFb(buf, XVport->fb_mem, XVport->fb_mem+XVport->PMemBuf->offset_mio, XVport->disp_pitch, src_h, src_w);
-	break;
-    case FOURCC_UYVY:
-	XVCopyPackedToFb(buf,  XVport->fb_mem+XVport->PMemBuf->offset_mio,XVport->fb_mem, XVport->disp_pitch, src_h, src_w);
-        break;
-//    default:
+    	ClipEq = FALSE;
+    	XVDBG("Video change  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
+    	OvlSetupDrw(pScrn, XVport->OvlPg, drw_x, drw_y, drw_w, drw_h, src_w, src_h);
+//	XVport->videoStatus = CLIENT_VIDEO_ON;
+    	XVport->Uoffset = src_h * src_w;
+    	XVport->Voffset = XVport->Uoffset + (XVport->Uoffset>>2);
     }
 
-    // update cliplist 
-       if(!ClipEq || (XVport->videoStatus != CLIENT_VIDEO_ON)) {
-            REGION_COPY(pScrn->pScreen, &XVport->clip, clipBoxes);
-            // draw these 
-    	    xf86XVFillKeyHelper(pScrn->pScreen, XVport->colorKey, clipBoxes);
-        }
-    OvlWaitSync(pScrn, XVport->OvlPg);
-    XVport->videoStatus = CLIENT_VIDEO_ON;
+    src_h = src_h & ~1;
+    src_w = src_w & ~1;//3
+    drw_h = drw_h & ~1;
+    drw_w = drw_w & ~1;
+
+    if(XVport->frame_fl){
+    	OvlFlipFb(pScrn, XVport->OvlPg, BACK_FB, 0);
+    	fb_mem = XVport->FrontMapBuf;
+    	offset_mio = XVport->FrontMemBuf->offset_mio;
+    }else{
+    	OvlFlipFb(pScrn, XVport->OvlPg, FRONT_FB, 0);
+    	fb_mem = XVport->BackMapBuf;
+    	offset_mio = XVport->BackMemBuf->offset_mio;
+    }
+
+   	switch(image) {
+   	case FOURCC_I420:
+   		XVCopyPlanarToFb(buf,buf+XVport->Uoffset,buf+XVport->Voffset, fb_mem,
+   				fb_mem+offset_mio, XVport->disp_pitch, src_h, src_w);
+   		break;
+   	case FOURCC_YV12:
+   		XVCopyPlanarToFb(buf,buf+XVport->Voffset,buf+XVport->Uoffset, fb_mem,
+   				fb_mem+offset_mio, XVport->disp_pitch, src_h, src_w);
+   		break;
+   	case FOURCC_YUY2:
+   		XVCopyPackedToFb(buf, fb_mem, fb_mem+offset_mio, XVport->disp_pitch, src_h, src_w);
+   		break;
+   	case FOURCC_UYVY:
+   		XVCopyPackedToFb(buf,  fb_mem+offset_mio, fb_mem, XVport->disp_pitch, src_h, src_w);
+   		break;
+	//    default:
+   	}
+
+	if(XVport->videoStatus != CLIENT_VIDEO_ON){
+		OvlFillKeyHelper(pDraw, XVport->colorKey, clipBoxes, TRUE);
+    }
+
+	XVport->videoStatus = CLIENT_VIDEO_ON;
+    XVport->frame_fl = !XVport->frame_fl;
     return Success;
 }
 
@@ -355,18 +370,16 @@ static void XVStopVideo(ScrnInfoPtr pScrn, pointer data, Bool exit)
 
     XVport->videoStatus = CLIENT_VIDEO_CHNG;
     if (exit) {
-	XVDBG("video exit\n");
+    	XVDBG("video exit");
         XVport->videoStatus = 0;
-	REGION_EMPTY(pScrn->pScreen, &XVport->clip);
-	OvlUnMapBufMem(pScrn, XVport->PMemBuf);
-	OvlClearBuf(pScrn, XVport->PMemBuf);
-//	OvlReset(pScrn);
-	OvlSetColorKey(pScrn, 0);
-	OvlEnable(pScrn, XVport->OvlPg, 0);
-	OvlFreeLay(pScrn, XVport->OvlPg);
+        REGION_EMPTY(pScrn->pScreen, &XVport->clip);
+        OvlSetColorKey(pScrn, 0);
+//	OvlEnable(pScrn, XVport->OvlPg, 0);
+        OvlFreeLay(pScrn, XVport->OvlPg);
     }
     else{
-	XVDBG("video stop\n");
+    	XVDBG("video stop");
+    	XVport->videoStatus = CLIENT_VIDEO_CHNG;
     }
 }
 
@@ -414,8 +427,9 @@ XVQueryBestSize(ScrnInfoPtr pScrn, Bool motion,
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     OvlHWPtr	overlay = pMxv->OvlHW;
+    XVPortPrivPtr XVport = pMxv->XVport;
 
-    XVDBG("QueryBestSize  vidW=%d, vidH=%d, xres=%d, yres=%d\n",vidW,vidH,overlay->cur_var.xres,overlay->cur_var.yres);
+    XVDBG("QueryBestSize  vidW=%d, vidH=%d, xres=%d, yres=%d",vidW,vidH,overlay->cur_var.xres,overlay->cur_var.yres);
     if(drawW > overlay->cur_var.xres)
 	*retW = overlay->cur_var.xres;
     else
@@ -453,7 +467,7 @@ static XF86VideoAdaptorPtr XVAllocAdaptor(ScrnInfoPtr pScrn)
 
 	if(!(XVport = calloc(1, sizeof(XVPortPrivRec)+(sizeof(DevUnion) * XVPORTS))))
 	{
-	    free(adapt);//xfree
+	    MFREE(adapt);//xfree
 	    adapt = NULL;
 	    XVport = NULL;
     	    return NULL;
@@ -462,8 +476,10 @@ static XF86VideoAdaptorPtr XVAllocAdaptor(ScrnInfoPtr pScrn)
 
 	for(i = 0; i < XVPORTS; i++)
     	    adapt->pPortPrivates[i].val = i;
-
-    XVport->colorKey = 0x00020202;
+	if(OvlGetUIBpp(pScrn) == 16)
+		XVport->colorKey = 0;//TODO
+	else
+		XVport->colorKey = 0x020202;
     XVport->videoStatus = 0;
     XVport->lastPort = -1;
 
@@ -481,41 +497,41 @@ XVInitAdaptor(ScreenPtr pScreen)
 
     adapt = XVAllocAdaptor(pScrn);
     if(adapt != NULL){
-	adapt->type = XvWindowMask | XvInputMask | XvImageMask;
-	adapt->flags = VIDEO_OVERLAID_IMAGES | VIDEO_CLIP_TO_VIEWPORT;
+    	adapt->type = XvWindowMask | XvInputMask | XvImageMask;
+    	adapt->flags = VIDEO_OVERLAID_IMAGES | VIDEO_CLIP_TO_VIEWPORT;
 
-	adapt->name = "RK30";
-	adapt->nEncodings = 1;
+    	adapt->name = "RK30";
+    	adapt->nEncodings = 1;
         adapt->pEncodings = &DummyEncoding[0];
-	adapt->nFormats = LARRAY_SIZE(Formats);
-	adapt->pFormats = Formats;
-	adapt->nPorts = XVPORTS;// nums ports
-	adapt->nAttributes = 0;
-	adapt->pAttributes = NULL;
-	adapt->nImages = LARRAY_SIZE(Images);
-	adapt->pImages = Images;
+        adapt->nFormats = LARRAY_SIZE(Formats);
+        adapt->pFormats = Formats;
+        adapt->nPorts = XVPORTS;// nums ports
+        adapt->nAttributes = 0;
+        adapt->pAttributes = NULL;
+        adapt->nImages = LARRAY_SIZE(Images);
+        adapt->pImages = Images;
 
-	adapt->PutVideo = NULL;
-	adapt->PutStill = NULL;
+        adapt->PutVideo = NULL;
+        adapt->PutStill = NULL;
         adapt->GetVideo = NULL;
-	adapt->GetStill = NULL;
+        adapt->GetStill = NULL;
 
-	adapt->StopVideo = XVStopVideo;
+        adapt->StopVideo = XVStopVideo;
 /* Empty Attrib functions - required anyway */
-	adapt->SetPortAttribute = XVSetPortAttribute;
-	adapt->GetPortAttribute = XVGetPortAttribute;
+        adapt->SetPortAttribute = XVSetPortAttribute;
+        adapt->GetPortAttribute = XVGetPortAttribute;
 
-	adapt->QueryBestSize = XVQueryBestSize;
-	adapt->QueryImageAttributes = XVQueryImageAttributes;
-	adapt->PutImage = XVPutImage;
-    XVPortPrivPtr XVport = pMxv->XVport;
-    REGION_NULL(pScreen, &(XVport->clip));
+        adapt->QueryBestSize = XVQueryBestSize;
+        adapt->QueryImageAttributes = XVQueryImageAttributes;
+        adapt->PutImage = XVPutImage;
+        XVPortPrivPtr XVport = pMxv->XVport;
+        REGION_NULL(pScreen, &(XVport->clip));
     }
     return adapt;
 }
 
 void
-InitXVideo(ScreenPtr pScreen)
+InitXVideo(ScreenPtr pScreen, Bool debug)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     FBDevPtr pMxv = FBDEVPTR(pScrn);
@@ -524,11 +540,11 @@ InitXVideo(ScreenPtr pScreen)
     int num_adaptors;
 
     pMxv->XVport = NULL;
-    xf86DrvMsg( pScrn->scrnIndex, X_INFO, "XV:Init begin\n");
+    INFMSG("XV:Init begin");
 
     if(NULL == pMxv->OvlHW){
-	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "XV:Not found overlay\n");
-	return;
+    	ERRMSG("XV:Not found overlay");
+    	return;
     }
 
     OvlHWPtr	overlay = pMxv->OvlHW;
@@ -536,36 +552,41 @@ InitXVideo(ScreenPtr pScreen)
     newAdaptor = XVInitAdaptor(pScreen);
 
     if (newAdaptor == NULL){
-	xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "XV:Error init adapter\n");
-	CloseXVideo(pScreen);
-	return;
+    	ERRMSG("XV:Error init adapter");
+    	CloseXVideo(pScreen);
+    	return;
     }
     num_adaptors = xf86XVListGenericAdaptors(pScrn, &adaptors);
 
     if(newAdaptor) {
-	if(!num_adaptors) {
+    	if(!num_adaptors) {
             num_adaptors = 1;
             adaptors = &newAdaptor;
-	} else {
+    	}else{
             newAdaptors = malloc((num_adaptors + 1) * sizeof(XF86VideoAdaptorPtr*));//xalloc
             if(newAdaptors) {
-		memcpy(newAdaptors, adaptors, num_adaptors * sizeof(XF86VideoAdaptorPtr));
-		newAdaptors[num_adaptors] = newAdaptor;
+            	memcpy(newAdaptors, adaptors, num_adaptors * sizeof(XF86VideoAdaptorPtr));
+            	newAdaptors[num_adaptors] = newAdaptor;
             	adaptors = newAdaptors;
             	num_adaptors++;
-	    } 
+            }
     	}
     }
+
     if(num_adaptors){
         if(!xf86XVScreenInit(pScreen, adaptors, num_adaptors)){
-	    xf86DrvMsg( pScrn->scrnIndex, X_ERROR, "XV:Fail initing screen\n");
-	    CloseXVideo(pScreen);
-	}
-	else
-	    xf86DrvMsg( pScrn->scrnIndex, X_INFO, "XV:Init complete\n");
+        	ERRMSG("XV:Fail initing screen");
+        	CloseXVideo(pScreen);
+        }
+        else{
+        	INFMSG("XV:Init complete");
+            XVPortPrivPtr XVport = pMxv->XVport;
+            XVport->debug = debug;
+        }
     }
+
     if(newAdaptors)
-	free(newAdaptors);//xfree
+    	MFREE(newAdaptors);//xfree
 }
 
 void
@@ -575,8 +596,8 @@ CloseXVideo(ScreenPtr pScreen)
     FBDevPtr pMxv = FBDEVPTR(pScrn);
 
     if(pMxv->XVport != NULL){
-	free(pMxv->XVport);
-	pMxv->XVport = NULL;
+    	MFREE(pMxv->XVport);
+		pMxv->XVport = NULL;
     }
-xf86DrvMsg( pScrn->scrnIndex, X_INFO, "XV:Closed\n");
+    INFMSG("XV:Closed");
 }

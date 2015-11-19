@@ -1,5 +1,4 @@
 /*
- * Adapted for rk3066 olegk0 <olegvedi@gmail.com>
  * Copyright © 2013 Siarhei Siamashka <siarhei.siamashka@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -22,27 +21,30 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef __DISP_HWCURSOR_H
-#define __DISP_HWCURSOR_H
+#ifndef INTERFACES_H
+#define INTERFACES_H
 
-#include "xf86Cursor.h"
-#include <inttypes.h>
-
-#define FBIOPUT_SET_CURSOR_EN    0x4609
-#define FBIOPUT_SET_CURSOR_IMG    0x460a
-#define FBIOPUT_SET_CURSOR_POS    0x460b
-#define FBIOPUT_SET_CURSOR_CMAP    0x460c
-
-
+/* A simple interface for 2D graphics operations */
 typedef struct {
-    xf86CursorInfoPtr hwcursor;
-    int fb_fd;
-//    int cursor_enabled;
-//    int cursor_x, cursor_y;
-
-} Rk30DispHWCRec, *Rk30DispHWCPtr; 
-
-void Rk30DispHardwareCursor_Init(ScreenPtr pScreen);
-void Rk30DispHardwareCursor_Close(ScreenPtr pScreen);
+    void *self; /* The pointer which needs to be passed to functions */
+    /*
+     * A counterpart for "pixman_blt", which supports overlapped copies.
+     * Except for the new "self" pointer, the rest of arguments are
+     * exactly the same.
+     */
+    int (*overlapped_blt)(void     *self,
+                          uint32_t *src_bits,
+                          uint32_t *dst_bits,
+                          int       src_stride,
+                          int       dst_stride,
+                          int       src_bpp,
+                          int       dst_bpp,
+                          int       src_x,
+                          int       src_y,
+                          int       dst_x,
+                          int       dst_y,
+                          int       w,
+                          int       h);
+} blt2d_i;
 
 #endif

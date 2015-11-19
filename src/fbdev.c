@@ -21,47 +21,32 @@
 #include "shadow.h"
 #include "dgaproc.h"
 
-#include "fbdev_priv.h"
-
-#include "disp_hwcursor.h"
-#include "mali_dri2.h"
-
-#if XV
-#include "video.h"
-#endif
-
 /* for visuals */
-
 #include "fb.h"
-#include "rk3066.h"
-#include "layer.h"
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <unistd.h>
 
 #if GET_ABI_MAJOR(ABI_VIDEODRV_VERSION) < 6
 #include "xf86Resources.h"
 #include "xf86RAC.h"
 #endif
 
-#include "fbdevhw.h"
-#include "xf86xv.h"
 #include "xorgVersion.h"
-
-#include "compat-api.h"
-
-#ifdef DEBUG
-static Bool debug = 1;
-#else
-static Bool debug = 0;
+#include "fbdev_priv.h"
+#include "disp_hwcursor.h"
+#include "mali_dri2.h"
+#if XV
+#include "video.h"
 #endif
+#include "rk3066.h"
+#include "layer.h"
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
-#define TRACE_ENTER(str) \
-    do { if (debug) ErrorF("rk30fb: " str " %d\n",pScrn->scrnIndex); } while (0)
-#define TRACE_EXIT(str) \
-    do { if (debug) ErrorF("rk30fb: " str " done\n"); } while (0)
-#define TRACE(str) \
-    do { if (debug) ErrorF("rk30fb trace: " str "\n"); } while (0)
+static Bool debug = 0;
+
+#define TRACE_ENTER(str) do { if(debug) ErrorF("rk30fb: " str " %d\n",pScrn->scrnIndex); } while (0)
+#define TRACE_EXIT(str) do { if(debug) ErrorF("rk30fb: " str " done\n"); } while (0)
+#define TRACE(str) do { if(debug) ErrorF("rk30fb trace: " str "\n"); } while (0)
 
 /* -------------------------------------------------------------------- */
 /* prototypes                                                           */
@@ -95,7 +80,7 @@ enum { FBDEV_ROTATE_NONE=0, FBDEV_ROTATE_CW=270, FBDEV_ROTATE_UD=180, FBDEV_ROTA
  */
 static int pix24bpp = 0;
 
-#define FBDEV_VERSION		4000
+#define FBDEV_VERSION		5000
 #define FBDEV_NAME		"RK30FB"
 #define FBDEV_DRIVER_NAME	"rk30fb"
 
@@ -127,17 +112,17 @@ typedef enum {
 	OPTION_HWBPP,
 	OPTION_HWCURSOR,
 	OPTION_DEBUG,
-	OPTION_WAITSYNC
+//	OPTION_WAITSYNC
 } FBDevOpts;
 
 static const OptionInfoRec FBDevOptions[] = {
 	{ OPTION_SHADOW_FB,	"ShadowFB",	OPTV_BOOLEAN,	{0},	FALSE },
 //	{ OPTION_ROTATE,	"Rotate",	OPTV_STRING,	{0},	FALSE },
 //	{ OPTION_FBDEV,		"fbdev",	OPTV_STRING,	{0},	FALSE },
-	{ OPTION_HWBPP,		"HWbpp",	OPTV_STRING,	{0},	FALSE },
+	{ OPTION_HWBPP,		"HWbpp",	OPTV_INTEGER,	{0},	FALSE },
 	{ OPTION_HWCURSOR,	"HWCursor",	OPTV_BOOLEAN,	{0},	FALSE },
-	{ OPTION_DEBUG,		"debug",	OPTV_BOOLEAN,	{0},	FALSE },
-	{ OPTION_WAITSYNC,	"WaitForSync",	OPTV_BOOLEAN,	{0},	FALSE },
+	{ OPTION_DEBUG,		"debug",	OPTV_INTEGER,	{0},	FALSE },
+//	{ OPTION_WAITSYNC,	"WaitForSync",	OPTV_BOOLEAN,	{0},	FALSE },
 	{ -1,			NULL,		OPTV_NONE,	{0},	FALSE }
 };
 
@@ -258,6 +243,7 @@ FBDevProbe(DriverPtr drv, int flags)
 		    pScrn = xf86ConfigFbEntity(pScrn,0,entity,
 					       NULL,NULL,NULL,NULL);
 		   
+		}
 		if (pScrn) {
 		    foundScreen = TRUE;
 		    
@@ -276,14 +262,13 @@ FBDevProbe(DriverPtr drv, int flags)
 		    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 			       "using %s\n", dev ? dev : "default device");
 		}
-	    }
 	}
 	free(devSections);
 	TRACE("probe done");
 	return foundScreen;
 }
 
-//IAM=====================================================================
+//=====================================================================
 #if XORG_VERSION_CURRENT < XORG_VERSION_NUMERIC(1,13,0,0,0)
 static Bool	HWSwitchModeWrap(int scrnIndex, DisplayModePtr mode, int flags)
 {
@@ -308,110 +293,89 @@ static Bool	HWSwitchModeWrap(ScrnInfoPtr pScrn, DisplayModePtr mode)
 	OvlUpdSavMod(pScrn);
     return ret;
 }
-//------------------------
-#ifdef DEBUG
-void lprntvar(ScrnInfoPtr pScrn)
-{
- int fd;
- struct fb_var_screeninfo tvar;
-
-    fd = open( FB_DEV_UI, O_RDONLY, 0);
-    
-    if (fd){
-	ioctl(fd, FBIOGET_VSCREENINFO, &tvar);
-	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "+++++++Resolution %dx%d\n", tvar.xres, tvar.yres);
-	close(fd);
-    }
-}
-#endif
 //****************
 Bool FBDevHWSetMode(ScrnInfoPtr pScrn, FBDevPtr fPtr)
 {
- int depth, bpp, fd, tmp, ret;
- struct fb_var_screeninfo tvar;
- const char *device;
+	int depth, fd, tmp;
+	struct fb_var_screeninfo tvar;
+	const char *name;
 
-//    device = xf86FindOptionValue(fPtr->pEnt->device->options,"fbdev");
-    device = FB_DEV_UI;
-    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "RK30: Try setup nonstd mode for dev:%s\n", device);
-    fd = open(device, O_RDONLY, 0);
-    if (-1 == fd) {
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to open framebuffer device\n");
-        goto err;
-    }
-    /* get current fb device settings */
-    if (-1 == ioctl(fd, FBIOGET_VSCREENINFO, (void *) (&tvar))) {
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "ioctl FBIOGET_VSCREENINFO\n");
-        goto err1;
-    }
-    device = xf86FindOptionValue(fPtr->pEnt->device->options,"HWbpp");
-    if(device == NULL)
-	depth = 32;
-    else
-	depth = atoi(device);
+	name = FB_DEV_UI;
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "RK30: Setup nonstd mode for dev:%s\n", name);
+	fd = open(name, O_RDONLY, 0);
+	if (fd <= 0) {
+		xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to open framebuffer device\n");
+		goto err;
+	}
+	/* get current fb device settings */
+	if (ioctl(fd, FBIOGET_VSCREENINFO, &tvar)) {
+		xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "ioctl FBIOGET_VSCREENINFO\n");
+		goto err1;
+	}
 
-    tvar.red.length = 8;
-    tvar.red.offset = 16;
-    tvar.green.length = 8;
-    tvar.green.offset = 8;
-    tvar.blue.length = 8;
-    tvar.blue.offset = 0;
-    tvar.transp.length = 0;
-    tvar.transp.offset = 0;
+	 name = xf86FindOptionValue(fPtr->pEnt->device->options,"HWbpp");
+	 if(name == NULL)
+		depth = 32;
+	 else
+		depth = atoi(name);
 
-    bpp = 32;
-    switch (depth){
-/*	case 16:
-	    tvar.nonstd = RGB_565;
-	    bpp = 16;
-	    tvar.red.length = 5,
-	    tvar.red.offset = 11,
-	    tvar.green.length = 6,
-	    tvar.green.offset = 5,
-	    tvar.blue.length = 5,
-	    tvar.transp.length = 0;
-	    tvar.transp.offset = 0;
-	break;
+	switch (depth){
+	case 16:
+		tvar.nonstd = RGB_565;
+		tvar.red.length = 5;
+		tvar.red.offset = 11;
+		tvar.green.length = 6;
+		tvar.green.offset = 5;
+		tvar.blue.length = 5;
+		tvar.blue.offset = 0;
+		tvar.transp.length = 0;
+		tvar.transp.offset = 0;
+		tvar.bits_per_pixel = 16;
+		break;
 	case 24:
-	    tvar.nonstd = RGB_888;
-	    bpp = 24;
-	    tvar.transp.length = 0;
-	    tvar.transp.offset = 0;
-	break;*/
+		tvar.nonstd = RGB_888;
+		tvar.red.length = 8;
+		tvar.red.offset = 0;
+		tvar.green.length = 8;
+		tvar.green.offset = 8;
+		tvar.blue.length = 8;
+		tvar.blue.offset = 16;
+		tvar.transp.length = 0;
+		tvar.transp.offset = 0;
+		tvar.bits_per_pixel = 24;
+		break;
 	case 32:
-	    tvar.nonstd = RGBX_8888;
-	break;
 	default:
-	    tvar.nonstd = RGBX_8888;
-    }
+//		tvar.nonstd = RGBX_8888;
+		tvar.nonstd = BGRA_8888;
+		tvar.bits_per_pixel = 32;
+		tvar.red.length = 8;
+		tvar.red.offset = 16;
+		tvar.green.length = 8;
+		tvar.green.offset = 8;
+		tvar.blue.length = 8;
+		tvar.blue.offset = 0;
+		tvar.transp.length = 0;
+		tvar.transp.offset = 0;
+		tvar.bits_per_pixel = 32;
+	}
 
-    tmp=0;
-    ioctl(fd, FBIOSET_ENABLE, &tmp);
+	xf86DrvMsg(pScrn->scrnIndex, X_INFO, "RK30: Setup for bpp:%d\n", tvar.bits_per_pixel);
+	if (ioctl(fd, FBIOPUT_VSCREENINFO, &tvar)) {
+		xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "ioctl FBIOPUT\n");
+		goto err1;
+	}
 
-//    tvar.activate = 1;
-    tvar.bits_per_pixel = bpp;
+	close(fd);
+	return TRUE;
 
-/*tvar.xres =1280;
-tvar.yres =720;
-lprntvar(pScrn);*/
-    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "RK30: Setup for bpp:%d\n", bpp);
-    ret = ioctl(fd, FBIOPUT_VSCREENINFO, (void *) (&tvar));
+ err1:
+	close(fd);
+ err:
+	return FALSE;
+ }
 
-    tmp=1;
-    ioctl(fd, FBIOSET_ENABLE, &tmp);
-    if (-1 == ret) {
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "ioctl FBIOPUT_VSCREENINFO\n");
-        goto err1;
-    }
-    xf86DrvMsg(pScrn->scrnIndex, X_INFO, "RK30: Setup nonstd mode completed\n");
-
-    close(fd);
-    return TRUE;
-err1:
-    close(fd);
-err:
-    return FALSE;
-}
+//------------------------
 
 static Bool
 FBDevPreInit(ScrnInfoPtr pScrn, int flags)
@@ -438,9 +402,8 @@ FBDevPreInit(ScrnInfoPtr pScrn, int flags)
 
 	fPtr->OvlHW = NULL;
 
-	/* open device */
-//IAM
 	FBDevHWSetMode(pScrn, fPtr);
+	/* open device */
 //	if (!fbdevHWInit(pScrn,NULL,(char *)xf86FindOptionValue(fPtr->pEnt->device->options,"fbdev")))
 	if (!fbdevHWInit(pScrn,NULL,FB_DEV_UI))
 		return FALSE;
@@ -449,6 +412,7 @@ FBDevPreInit(ScrnInfoPtr pScrn, int flags)
 			     Support24bppFb | Support32bppFb | SupportConvert32to24 | SupportConvert24to32))
 		return FALSE;
 	xf86PrintDepthBpp(pScrn);
+
 	/* Get the depth24 pixmap format */
 	if (pScrn->depth == 24 && pix24bpp == 0)
 		pix24bpp = xf86GetBppFromDepth(pScrn, 24);
@@ -499,7 +463,7 @@ FBDevPreInit(ScrnInfoPtr pScrn, int flags)
 //	fPtr->shadowFB = xf86ReturnOptValBool(fPtr->Options, OPTION_SHADOW_FB, TRUE);
 	fPtr->shadowFB = FALSE;
 
-	debug = xf86ReturnOptValBool(fPtr->Options, OPTION_DEBUG, FALSE);
+	debug = xf86GetOptValInteger(fPtr->Options, OPTION_DEBUG, &fPtr->DebugLvl);
 
 	/* rotation */
 	fPtr->rotate = FBDEV_ROTATE_NONE;
@@ -552,10 +516,8 @@ FBDevPreInit(ScrnInfoPtr pScrn, int flags)
 		xf86PruneDriverModes(pScrn);
 	}
 
-	if (NULL == pScrn->modes){
+	if (NULL == pScrn->modes)
 		fbdevHWUseBuildinMode(pScrn);
-		xf86DrvMsg(pScrn->scrnIndex, X_INFO, "UseBuildinMode\n");
-	}
 	pScrn->currentMode = pScrn->modes;
 
 	/* First approximation, may be refined in ScreenInit */
@@ -700,7 +662,7 @@ FBDevScreenInit(SCREEN_INIT_ARGS_DECL)
 	fPtr->fboff = fbdevHWLinearOffset(pScrn);
 
 	fbdevHWSave(pScrn);
-pScrn->virtualY = pScrn->currentMode->VDisplay;
+
 	if (!fbdevHWModeInit(pScrn, pScrn->currentMode)) {
 		xf86DrvMsg(pScrn->scrnIndex,X_ERROR,"mode initialization failed\n");
 		return FALSE;
@@ -779,22 +741,11 @@ pScrn->virtualY = pScrn->currentMode->VDisplay;
 		case 16:
 		case 24:
 		case 32:
-#ifdef DEBUG
-			xf86DrvMsg(pScrn->scrnIndex, X_INFO,"HDisplay:%d,VDisplay:%d,xDpi:%d,yDpi:%d,displayWidth:%d,bitsPerPixel:%d\n",pScrn->currentMode->HDisplay,
-					   pScrn->currentMode->VDisplay, pScrn->xDpi,
-					   pScrn->yDpi, pScrn->displayWidth,
-					   pScrn->bitsPerPixel);
-#endif
 			ret = fbScreenInit(pScreen, fPtr->shadowFB ? fPtr->shadow
-					   : fPtr->fbstart, pScrn->currentMode->HDisplay,
-					   pScrn->currentMode->VDisplay, pScrn->xDpi,
-					   pScrn->yDpi, pScrn->displayWidth,
-					   pScrn->bitsPerPixel);
-/*IAM			ret = fbScreenInit(pScreen, fPtr->shadowFB ? fPtr->shadow
 					   : fPtr->fbstart, pScrn->virtualX,
 					   pScrn->virtualY, pScrn->xDpi,
 					   pScrn->yDpi, pScrn->displayWidth,
-					   pScrn->bitsPerPixel);*/
+					   pScrn->bitsPerPixel);
 			init_picture = 1;
 			break;
 	 	default:
@@ -880,7 +831,6 @@ pScrn->virtualY = pScrn->currentMode->VDisplay;
 	xf86SetBlackWhitePixels(pScreen);
 	xf86SetBackingStore(pScreen);
 
-//	xf86SetSilkenMouse(pScreen);
 	/* software cursor */
 	miDCInitialize(pScreen, xf86GetPointerScreenFuncs());
 
@@ -930,18 +880,14 @@ pScrn->virtualY = pScrn->currentMode->VDisplay;
 	fPtr->CloseScreen = pScreen->CloseScreen;
 	pScreen->CloseScreen = FBDevCloseScreen;
 
-	fPtr->WaitForSync = xf86ReturnOptValBool(fPtr->Options, OPTION_WAITSYNC, FALSE);
-	InitHWAcl(pScreen);
+//	fPtr->WaitForSync = xf86ReturnOptValBool(fPtr->Options, OPTION_WAITSYNC, FALSE);
+	InitHWAcl(pScreen, fPtr->DebugLvl & 1);
 #if XV
-	InitXVideo(pScreen);
+	InitXVideo(pScreen, fPtr->DebugLvl & 2);
 #endif
 	if(xf86ReturnOptValBool(fPtr->Options, OPTION_HWCURSOR, FALSE))
-	    Rk30DispHardwareCursor_Init(pScreen, FB_DEV_UI);
-//				    xf86FindOptionValue(fPtr->pEnt->device->options,"fbdev"));
-
-	Rk30MaliDRI2_Init(pScreen);
-//	  xf86DisableRandR();
-//	miPointerWarpCursor(pScreen, 0, 0);
+	    Rk30DispHardwareCursor_Init(pScreen);
+	Rk30MaliDRI2_Init(pScreen, fPtr->DebugLvl & 4);
 
 	TRACE_EXIT("FBDevScreenInit");
 
@@ -955,8 +901,9 @@ FBDevCloseScreen(CLOSE_SCREEN_ARGS_DECL)
 	FBDevPtr fPtr = FBDEVPTR(pScrn);
 
 	Rk30MaliDRI2_Close(pScreen);
-
 	Rk30DispHardwareCursor_Close(pScreen);
+    CloseXVideo(pScreen);
+	CloseHWAcl(pScreen);
 
 	fbdevHWRestore(pScrn);
 	fbdevHWUnmapVidmem(pScrn);
@@ -974,10 +921,6 @@ FBDevCloseScreen(CLOSE_SCREEN_ARGS_DECL)
 
 	pScreen->CreateScreenResources = fPtr->CreateScreenResources;
 	pScreen->CloseScreen = fPtr->CloseScreen;
-
-        CloseXVideo(pScreen);
-
-	CloseHWAcl(pScreen);
 
 	return (*pScreen->CloseScreen)(CLOSE_SCREEN_ARGS);
 }
@@ -1075,7 +1018,7 @@ FBDevDGASetMode(ScrnInfoPtr pScrn, DGAModePtr pDGAMode)
     DisplayModePtr pMode;
     int scrnIdx = pScrn->pScreen->myNum;
     int frameX0, frameY0;
-TRACE_ENTER("FBDevDGASetMode");
+
     if (pDGAMode) {
 	pMode = pDGAMode->mode;
 	frameX0 = frameY0 = 0;

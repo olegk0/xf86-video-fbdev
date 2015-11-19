@@ -23,7 +23,7 @@
 # Initialize Autoconf
 AC_PREREQ([2.60])
 AC_INIT([xf86-video-rk30fb],
-        [0.6.1],
+        [0.7.0],
         [https://github.com/olegk0/xf86-video-fbdev],
         [xf86-video-rk30fb])
 AC_CONFIG_SRCDIR([Makefile.am])

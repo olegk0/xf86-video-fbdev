@@ -48,6 +48,7 @@ typedef struct
     int                     depth;
     size_t                  width;
     size_t                  height;
+    Bool					frame;
 } UMPBufferInfoRec, *UMPBufferInfoPtr;
 
 typedef struct {
@@ -55,35 +56,31 @@ typedef struct {
     int                     ovl_y;
     int                     ovl_w;
     int                     ovl_h;
-    Bool                    ovl_cr;
-    Bool			RFAO;
-    char			lstatus;
+    unsigned int			lstatus;
 
     WindowPtr               pOverlayWin;
     Bool                    bOverlayWinEnabled;
-//    Bool                    bOverlayWinOverlapped;
-//    Bool                    bWalkingAboveOverlayWin;
 
     Bool                    bHardwareCursorIsInUse;
-    struct fb_var_screeninfo fb_var;
+//    struct fb_var_screeninfo fb_var;
     DestroyWindowProcPtr    DestroyWindow;
-//    PostValidateTreeProcPtr PostValidateTree;
-//    GetImageProcPtr         GetImage;
     DestroyPixmapProcPtr    DestroyPixmap;
-    ump_secure_id		ump_fb_secure_id1;
-//    ump_secure_id		ump_fb_secure_id2;
-//    ump_secure_id		ump_null_secure_id;
-//    ump_handle			ump_null_handle;
-    DRI2Buffer2Ptr		buf_back;
+    ump_secure_id			ump_fb_front_secure_id;
+    ump_secure_id			ump_fb_back_secure_id;
+    ump_secure_id			ump_null_secure_id;
+    ump_handle				ump_null_handle;
     UMPBufferInfoPtr        HashPixmapToUMP;
-
     int                     drm_fd;
-    OvlMemPgPtr		PMemBuf;
-    OvlLayPg		OvlPg;
+    OvlMemPgPtr				FrontMemBuf;
+    OvlMemPgPtr				BackMemBuf;
+    void*					FrontMapBuf;
+    void*					BackMapBuf;
+    OvlLayPg				OvlPg;
+    Bool					debug;
 } Rk30MaliRec, *Rk30MaliPtr;
 
 //**********************************************
-void Rk30MaliDRI2_Init(ScreenPtr pScreen);
+void Rk30MaliDRI2_Init(ScreenPtr pScreen, Bool debug);
 void Rk30MaliDRI2_Close(ScreenPtr pScreen);
 
 #endif

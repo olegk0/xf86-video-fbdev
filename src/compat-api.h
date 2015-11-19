@@ -25,8 +25,8 @@
 
 /* this file provides API compat between server post 1.13 and pre it,
    it should be reused inside as many drivers as possible */
-#ifndef __COMPAT_API_H
-#define __COMPAT_API_H
+#ifndef COMPAT_API_H
+#define COMPAT_API_H
 
 #ifndef GLYPH_HAS_GLYPH_PICTURE_ACCESSOR
 #define GetGlyphPicture(g, s) GlyphPicture((g))[(s)->myNum]
