@@ -1,4 +1,4 @@
-xf86-video-rk30fb v8.0 
+xf86-video-rk30fb v0.7.0 
 ================
 
 xf86-video-rk30fb for rk3066 (for testing). Activated hardware cursor and XVideo, also support Mali
