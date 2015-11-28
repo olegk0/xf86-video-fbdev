@@ -40,9 +40,9 @@ typedef struct {
 //    int cursor_enabled;
 //    int cursor_x, cursor_y;
 
-} Rk30DispHWCRec, *Rk30DispHWCPtr; 
+} RkDispHWCRec, *RkDispHWCPtr;
 
-void Rk30DispHardwareCursor_Init(ScreenPtr pScreen);
-void Rk30DispHardwareCursor_Close(ScreenPtr pScreen);
+void RkDispHardwareCursor_Init(ScreenPtr pScreen);
+void RkDispHardwareCursor_Close(ScreenPtr pScreen);
 
 #endif

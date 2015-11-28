@@ -45,7 +45,6 @@
 #include "fb.h"
 
 #include "fbdev_priv.h"
-#include "rk3066.h"
 #include "disp_hwcursor.h"
 #include "mali_dri2.h"
 
@@ -67,7 +66,7 @@ MigratePixmapToUMP(PixmapPtr pPixmap)
 {
     ScreenPtr pScreen = pPixmap->drawable.pScreen;
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    Rk30MaliPtr mali = FBDEVPTR(pScrn)->Rk30Mali;
+    RkMaliPtr mali = FBDEVPTR(pScrn)->RkMali;
     UMPBufferInfoPtr umpbuf;
     size_t pitch = ((pPixmap->devKind + 7) / 8) * 8;
     size_t size = pitch * pPixmap->drawable.height;
@@ -133,8 +132,7 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     UMPBufferInfoPtr	privates;
     ump_handle			handle;
     FBDevPtr			pMxv = FBDEVPTR(pScrn);
-    Rk30MaliPtr			mali = pMxv->Rk30Mali;
-    OvlHWPtr			overlay = pMxv->OvlHW;
+    RkMaliPtr			mali = pMxv->RkMali;
     Bool				can_use_overlay = TRUE;
     PixmapPtr			pWindowPixmap;
 
@@ -228,19 +226,20 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     }
 
     if(mali->OvlPg == ERRORL){
-    	mali->OvlPg = OvlAllocLay(pScrn, ANYL, ALC_FRONT_BACK_FB);
+    	mali->OvlPg = OvlAllocLay(ANYL, ALC_FRONT_BACK_FB);
     	if(mali->OvlPg == ERRORL){
     		ERRMSG("Cannot alloc overlay\n");
     		can_use_overlay = FALSE;
     	}else{//init
-    		OvlSetupFb(pScrn, mali->OvlPg, 0, 0, pDraw->width, pDraw->height);
-    		OvlEnable(pScrn, mali->OvlPg, 1);
-    		mali->FrontMemBuf = OvlGetBufByLay(pScrn, mali->OvlPg, FRONT_FB);
-    		mali->BackMemBuf = OvlGetBufByLay(pScrn, mali->OvlPg, BACK_FB);
-    		mali->ump_fb_front_secure_id = mali->FrontMemBuf->ump_fb_secure_id;
-    		mali->ump_fb_back_secure_id = mali->BackMemBuf->ump_fb_secure_id;
-    		mali->FrontMapBuf = OvlMapBufMem(pScrn, mali->FrontMemBuf);
-    		mali->BackMapBuf = OvlMapBufMem(pScrn, mali->BackMemBuf);
+    		DebugMsg("MaliDRI2CreateBuffer: Alloc ovl:%d",mali->OvlPg);
+    		OvlSetupFb(mali->OvlPg, 0, 0, pDraw->width, pDraw->height);
+    		OvlEnable(mali->OvlPg, 1);
+    		mali->FrontMemBuf = OvlGetBufByLay(mali->OvlPg, FRONT_FB);
+    		mali->BackMemBuf = OvlGetBufByLay(mali->OvlPg, BACK_FB);
+    		mali->ump_fb_front_secure_id = OvlGetSidByMemPg(mali->FrontMemBuf);
+    		mali->ump_fb_back_secure_id = OvlGetSidByMemPg(mali->BackMemBuf);
+    		mali->FrontMapBuf = OvlMapBufMem(mali->FrontMemBuf);
+    		mali->BackMapBuf = OvlMapBufMem(mali->BackMemBuf);
     	}
     }
 
@@ -248,7 +247,7 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     mali->lstatus++;
     if (can_use_overlay){
         mali->pOverlayWin = (WindowPtr)pDraw;
-        buffer->pitch = buffer->cpp * OvlGetVXresByLay(pScrn, mali->OvlPg);
+        buffer->pitch = buffer->cpp * OvlGetVXresByLay(mali->OvlPg);
         privates->handle = UMP_INVALID_MEMORY_HANDLE;
         privates->frame = mali->lstatus & 1;
     	if(privates->frame){
@@ -298,7 +297,7 @@ static void MaliDRI2DestroyBuffer(DrawablePtr pDraw, DRI2Buffer2Ptr buffer)
     UMPBufferInfoPtr privates;
     ScreenPtr pScreen = pDraw->pScreen;
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    Rk30MaliPtr mali = FBDEVPTR(pScrn)->Rk30Mali;
+    RkMaliPtr mali = FBDEVPTR(pScrn)->RkMali;
 
     DebugMsg("DRI2DestroyBuffer %s=%p, buf=%p:%p, att=%d\n",
              pDraw->type == DRAWABLE_WINDOW ? "win" : "pix",
@@ -386,8 +385,7 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     ScreenPtr pScreen = pDraw->pScreen;
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     FBDevPtr pMxv = FBDEVPTR(pScrn);
-    Rk30MaliPtr mali = pMxv->Rk30Mali;
-    OvlHWPtr overlay = pMxv->OvlHW;
+    RkMaliPtr mali = pMxv->RkMali;
     int ret;
     Bool Changed=FALSE;
 
@@ -403,7 +401,7 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     if(mali->ovl_h != pDraw->height || mali->ovl_w != pDraw->width){
     	mali->ovl_h = pDraw->height;
     	mali->ovl_w = pDraw->width;
-    	ret = OvlSetModeFb(pScrn, mali->OvlPg,mali->ovl_w, mali->ovl_h,0);
+    	ret = OvlSetModeFb(mali->OvlPg,mali->ovl_w, mali->ovl_h,0);
 //    	ret = OvlSetupFb(pScrn, mali->OvlPg, 0, 0, pDraw->width, pDraw->height)
         DebugMsg("Change size to w:%d,h:%d\n", pDraw->width,pDraw->height);
         Changed = TRUE;
@@ -412,19 +410,19 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     if(mali->ovl_x != pDraw->x || mali->ovl_y != pDraw->y){
     	mali->ovl_x = pDraw->x;
     	mali->ovl_y = pDraw->y;
-    	ret = OvlSetupDrw(pScrn, mali->OvlPg, mali->ovl_x, mali->ovl_y, mali->ovl_w, mali->ovl_h, mali->ovl_w, mali->ovl_h);
+    	ret = OvlSetupDrw(mali->OvlPg, mali->ovl_x, mali->ovl_y, mali->ovl_w, mali->ovl_h, mali->ovl_w, mali->ovl_h);
         DebugMsg("Change pos to x:%d,y:%d\n", pDraw->x,pDraw->y);
         Changed = TRUE;
     }
 
     if(Changed){
-    	OvlFillKeyHelper(pDraw, 0xff000000, pRegion, FALSE);
+    	HWAclFillKeyHelper(pDraw, 0xff000000, pRegion, FALSE);
     }
 
     if(bufpriv->frame)
-    	OvlFlipFb(pScrn, mali->OvlPg, FRONT_FB, 0);
+    	OvlFlipFb(mali->OvlPg, FRONT_FB, 0);
     else
-    	OvlFlipFb(pScrn, mali->OvlPg, BACK_FB, 0);
+    	OvlFlipFb(mali->OvlPg, BACK_FB, 0);
 
 }
 
@@ -435,7 +433,7 @@ DestroyWindow(WindowPtr pWin)
 {
     ScreenPtr pScreen = pWin->drawable.pScreen;
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    Rk30MaliPtr mali = FBDEVPTR(pScrn)->Rk30Mali;
+    RkMaliPtr mali = FBDEVPTR(pScrn)->RkMali;
     Bool ret;
 
 
@@ -447,7 +445,7 @@ DestroyWindow(WindowPtr pWin)
         mali->ovl_w = 0;
         mali->ovl_h = 0;
         if(mali->OvlPg != ERRORL){
-    		OvlFreeLay(pScrn, mali->OvlPg);
+    		OvlFreeLay(mali->OvlPg);
     		mali->OvlPg = ERRORL;
     	}
         DebugMsg("DestroyWindow %p\n", pWin);
@@ -466,7 +464,7 @@ DestroyPixmap(PixmapPtr pPixmap)
 {
     ScreenPtr pScreen = pPixmap->drawable.pScreen;
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
-    Rk30MaliPtr mali = FBDEVPTR(pScrn)->Rk30Mali;
+    RkMaliPtr mali = FBDEVPTR(pScrn)->RkMali;
     Bool result;
     UMPBufferInfoPtr umpbuf;
     HASH_FIND_PTR(mali->HashPixmapToUMP, &pPixmap, umpbuf);
@@ -497,7 +495,7 @@ DestroyPixmap(PixmapPtr pPixmap)
     return result;
 }
 
-void Rk30MaliDRI2_Init(ScreenPtr pScreen, Bool debug)
+void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug)
 {
     int drm_fd;
     DRI2InfoRec info;
@@ -506,14 +504,18 @@ void Rk30MaliDRI2_Init(ScreenPtr pScreen, Bool debug)
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     Bool isOverlay = TRUE;
 
-    pMxv->Rk30Mali = NULL;
-    if(pMxv->OvlHW == NULL){
+    if (ump_open() != UMP_OK){
+    	ERRMSG("Rk30MaliDRI2_Init: Can`t init UMP system!");
+    	return;
+    }
+    pMxv->RkMali = NULL;
+    if(pMxv->HWAcl == NULL){
     	ERRMSG("Rk30MaliDRI2_Init: Overlay not found!");
 //        return;
         isOverlay = FALSE;
     }
 
-    OvlHWPtr overlay = pMxv->OvlHW;
+    HWAclPtr hwacl = pMxv->HWAcl;
 
     if (!xf86LoadKernelModule("mali"))
     	INFMSG("can't load 'mali' kernel module");
@@ -530,12 +532,12 @@ void Rk30MaliDRI2_Init(ScreenPtr pScreen, Bool debug)
         return;
     }
 
-    if(!(pMxv->Rk30Mali = calloc(1, sizeof(Rk30MaliRec) ))){
+    if(!(pMxv->RkMali = calloc(1, sizeof(RkMaliRec) ))){
     	ERRMSG("Rk30MaliDRI2_Init: Mem alloc failed!");
         goto err0;
     }
 
-    Rk30MaliPtr	mali = pMxv->Rk30Mali;
+    RkMaliPtr	mali = pMxv->RkMali;
 
 	/* Try to allocate small dummy UMP buffers to secure id 1 and 2 */
     mali->ump_null_secure_id = UMP_INVALID_SECURE_ID;
@@ -591,18 +593,17 @@ err2:
 err1:
     MFREE(mali);
 err0:
-//	ump_close();
+	ump_close();
     drmClose(drm_fd);
 }
 
-void Rk30MaliDRI2_Close(ScreenPtr pScreen)
+void RkMaliDRI2_Close(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     FBDevPtr pMxv = FBDEVPTR(pScrn);
 
-    if (pMxv->Rk30Mali != NULL) {
-    	OvlHWPtr overlay = pMxv->OvlHW;
-    	Rk30MaliPtr	mali = pMxv->Rk30Mali;
+    if (pMxv->RkMali != NULL) {
+    	RkMaliPtr	mali = pMxv->RkMali;
 
     /* Unwrap functions */
     	pScreen->DestroyWindow    = mali->DestroyWindow;
@@ -610,7 +611,7 @@ void Rk30MaliDRI2_Close(ScreenPtr pScreen)
 //    pScreen->GetImage         = mali->GetImage;
     	pScreen->DestroyPixmap    = mali->DestroyPixmap;
 
-    	OvlFreeLay(pScrn, mali->OvlPg);
+    	OvlFreeLay(mali->OvlPg);
 
     	if (mali->ump_null_handle != UMP_INVALID_MEMORY_HANDLE)
     		ump_reference_release(mali->ump_null_handle);
@@ -619,5 +620,6 @@ void Rk30MaliDRI2_Close(ScreenPtr pScreen)
     	drmClose(mali->drm_fd);
     	MFREE(mali);
     	mali = NULL;
+    	ump_close();
     }
 }

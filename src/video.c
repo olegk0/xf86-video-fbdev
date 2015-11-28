@@ -31,7 +31,6 @@
 
 #include "video.h"
 #include "layer.h"
-#include "rk3066.h"
 #include "fbdev_priv.h"
 #include <sys/mman.h>
 
@@ -42,7 +41,6 @@
 #endif
 
 #define XVPORTS 1
-#define PAGE_MASK    (getpagesize() - 1)
 
 static XF86VideoEncodingRec DummyEncoding[1] = {
    {0, "XV_IMAGE", 1920, 1080, {1, 1}}
@@ -57,8 +55,6 @@ XF86ImageRec Images[] = {
     XVIMAGE_UYVY,                      //16bpp MDP_YCRYCB_H2V1 
     XVIMAGE_I420,			//12bpp	Planar 420
     XVIMAGE_YV12,			//12bpp 
-//    XVIMAGE_RGB,
-//    XVIMAGE_RGB888,
 };
 
 //-------------------------------------------------------------------
@@ -67,203 +63,47 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short drw_x, short drw_y, short drw
 {       
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     XVPortPrivPtr XVport = pMxv->XVport;
-    int in_mode=0,out_mode=0, xres, yres;
+    int out_mode=0, xres, yres;
 
     XVDBG("setup overlay ");
-    XVport->OvlPg = OvlAllocLay(pScrn, SCALEL, ALC_FRONT_BACK_FB);
+    XVport->OvlPg = OvlAllocLay(SCALEL, ALC_FRONT_BACK_FB);
     if(XVport->OvlPg == ERRORL)
     	return FALSE;
 
-    XVDBG("alloc overlay - pass ");
-    XVport->FrontMemBuf = OvlGetBufByLay(pScrn, XVport->OvlPg, FRONT_FB);
-    XVport->BackMemBuf = OvlGetBufByLay(pScrn, XVport->OvlPg, BACK_FB);
+    XVDBG("alloc overlay - pass:%d",XVport->OvlPg);
+    XVport->FrontMemBuf = OvlGetBufByLay(XVport->OvlPg, FRONT_FB);
+    XVport->BackMemBuf = OvlGetBufByLay(XVport->OvlPg, BACK_FB);
 /*    if(!XVport->FrontMemBuf){
     	goto err;
     }*/
     XVDBG("get buf - pass ");
-    XVport->FrontMapBuf = OvlMapBufMem(pScrn, XVport->FrontMemBuf);
-    XVport->BackMapBuf = OvlMapBufMem(pScrn, XVport->BackMemBuf);
+    XVport->FrontMapBuf = OvlMapBufMem(XVport->FrontMemBuf);
+    XVport->BackMapBuf = OvlMapBufMem(XVport->BackMemBuf);
     if(!XVport->FrontMapBuf || !XVport->BackMapBuf){
     	goto err;
     }
     XVport->frame_fl = FALSE;
     XVDBG("map buf - pass ");
 
-    switch(id) {
-    case FOURCC_YV12://YVU planar 	needs to be converted into a SemiPlanar format (with HW-RGA or SW)
-    case FOURCC_I420://YUV identical to YV12 except that the U and V plane order is reversed
-    	in_mode = YCrCb_NV12_P;//SP disp format
-    	out_mode = YCrCb_NV12_SP;//?
-        break;
-    case FOURCC_UYVY://packed U0Y0V0Y1 U2Y2V2Y3		needs to unpacking in SemiPlanar
-    case FOURCC_YUY2://packed low Y0U0Y1V0 hi
-//	in_mode = 0;
-    	out_mode = YCbCr_422_SP;
-    	break;
-    default:
-    	out_mode = RGBX_8888;
-    }
-    
-    OvlSetupFb(pScrn, XVport->OvlPg, in_mode, out_mode, 0, 0);
+    out_mode = OvlRkModeByFOURCC(id);
+    XVDBG("FOURCC:%X - rkmode:%X", id, out_mode);
 
-    XVport->disp_pitch = OvlGetVXresByLay(pScrn, XVport->OvlPg);
+    out_mode = OvlSetupFb(XVport->OvlPg, 0, out_mode, 0, 0);
+    XVDBG("OvlSetupFb ret:%d", out_mode);
+
+    XVport->disp_pitch = OvlGetVXresByLay(XVport->OvlPg);
     if(XVport->disp_pitch<=0)
     	goto err;
     XVDBG("Pitch:%d",XVport->disp_pitch);
 
-    OvlSetColorKey(pScrn, XVport->colorKey);
-    OvlEnable(pScrn, XVport->OvlPg, 1);
+    OvlSetColorKey(XVport->colorKey);
+    OvlEnable(XVport->OvlPg, 1);
 
     XVDBG("Setup overlay - pass");
     return TRUE;
 err:
-    OvlFreeLay(pScrn, XVport->OvlPg);
+    OvlFreeLay(XVport->OvlPg);
     return FALSE;
-}
-
-//-----------------------------------------------------------------
-//convert packed U0Y0V0Y1 U2Y2V2Y3 to SemiPlanar for display
-static void
-XVCopyPackedToFb(const void *src, void *dst_Y, void *dst_UV,/* CARD32 dst_offset,
-	    int srcPitch,*/ int dstPitch, int h, int w)
-{
-    uint32_t Fvars[4];
-
-    Fvars[0]= (w/*px*/)>>2;//stride; aligned by 4px (4px (8bytes) per pass)
-    Fvars[1]= h;//lines;
-    Fvars[2]= (w/*px*/)<<1;//SrcPitch;
-    Fvars[3]= dstPitch/*px*/;
-#ifdef __arm__
-        asm volatile (
-        "up0: \n\t"
-        "mov	v5,#0 \n\t"//counter
-        "push {%[Yvar],%[Src],%[UVvar]}\n\t"
-        "up1: \n\t"
-        "ldr	v1,[%[Src]]\n\t"
-        "bic	v2,v1,#0xFFFFFF00\n\t"
-        "bic	v3,v1,#0xFF00FFFF\n\t"
-        "orr	v3,v2,v3,lsr #8\n\t"
-        "bic	v1,v1,#0x00FF00FF\n\t"
-        "orr	v1,v1,v1,lsl #8\n\t"
-        "mov	v6,v1,lsr #16\n\t"
-//
-        "ldr	v1,[%[Src],#4]\n\t"//4byte skip
-        "bic	v2,v1,#0xFF00FF00\n\t"
-        "orr	v2,v2,v2,lsr #8\n\t"
-        "orr	v3,v3,v2,lsl #16\n\t"
-        "str	v3,[%[Yvar]]\n\t"
-        "bic	v2,v1,#0xFFFF00FF\n\t"
-        "bic	v1,v1,#0x00FFFFFF\n\t"
-        "orr	v1,v1,v2,lsl #8\n\t"
-        "orr	v6,v6,v1\n\t"
-        "str	v6,[%[UVvar]]\n\t"
-
-        "add	%[Src],%[Src],#8 \n\t"//8byte skip
-        "add	%[Yvar],%[Yvar],#4 \n\t"//4byte skip
-        "add	%[UVvar],%[UVvar],#4 \n\t"//4byte skip
-        "add	v5,v5,#1 \n\t"//+1
-        "ldr	v1,[%[Fvars],%[Stride]]\n\t"
-        "cmp	v5,v1 \n\t"// = stride?
-        "bne	up1 \n\t"//if no - jmp up
-
-	"pop {%[Yvar],%[Src],%[UVvar]}\n\t"
-        "ldr	v1,[%[Fvars],%[SrcPitch]]\n\t"
-        "add	%[Src],%[Src],v1\n\t"
-        "ldr	v1,[%[Fvars],%[DstPitch]]\n\t"
-        "add	%[Yvar],%[Yvar],v1\n\t"
-        "add	%[UVvar],%[UVvar],v1\n\t"
-
-        "ldr	v2,[%[Fvars],%[Lines]]\n\t"
-        "subs	v2,v2,#1 \n\t"//-1 and set zero flag if 0
-        "str	v2,[%[Fvars],%[Lines]]\n\t"
-        "bne	up0 \n\t"//if no - jmp up0
-	: : [Src] "r"(src), [Yvar] "r"(dst_Y), [UVvar] "r"(dst_UV), [Fvars] "r"(&Fvars), [Stride] "J"(0),
-	 [Lines] "J"(4*1), [SrcPitch] "J"(4*2), [DstPitch] "J"(4*3)
-        : "v1","v2","v3","v6","v5","memory"
-
-        );
-#endif
-}
-//-----------------------------------------------------------------
-static void
-XVCopyPlanarToFb(const void *src_Y,const void *src_U,const void *src_V, void *dst_Y, void *dst_UV, int dstPitch, int h, int w)
-{
-    uint32_t Fvars[4];
-
-    Fvars[0]= (w/*px*/)>>2;//stride;
-    Fvars[1]= h;//lines;
-    Fvars[2]= (w/*px*/);//SrcPitch;
-    Fvars[3]= dstPitch/*px*/;
-#ifdef __arm__
-        asm volatile (
-//************Y block
-        "ldr	v3,[%[Fvars],%[Lines]]\n\t"
-        "ldr	v5,[%[Fvars],%[Stride]]\n\t"
-        "up20: \n\t"
-        "mov	v6,#0 \n\t"//counter
-        "push {%[SrcY],%[Yvar]}\n\t"
-        "up21: \n\t"
-        "ldr	v1,[%[SrcY]]\n\t"
-        "str	v1,[%[Yvar]]\n\t"
-        "add	%[SrcY],%[SrcY],#4\n\t"
-        "add	%[Yvar],%[Yvar],#4\n\t"
-
-        "add	v6,v6,#1 \n\t"//+1
-        "cmp	v6,v5 \n\t"// = stride?
-        "bne	up21 \n\t"//if no - jmp up
-
-	"pop {%[SrcY],%[Yvar]}\n\t"
-        "ldr	v1,[%[Fvars],%[SrcPitch]]\n\t"
-        "add	%[SrcY],%[SrcY],v1\n\t"
-        "ldr	v2,[%[Fvars],%[DstPitch]]\n\t"
-        "add	%[Yvar],%[Yvar],v2\n\t"
-
-        "subs	v3,v3,#1 \n\t"//-1 and set zero flag if 0
-        "bne	up20 \n\t"//if no - jmp up0
-//************UV block
-        "ldr	v3,[%[Fvars],%[Lines]]\n\t"
-        "mov	v3,v3,lsr #1 \n\t"
-        "str	v3,[%[Fvars],%[Lines]]\n\t"
-        "ldr	v5,[%[Fvars],%[Stride]]\n\t"
-        "up30: \n\t"
-        "mov	v6,#0 \n\t"//counter
-	"push {%[SrcU],%[SrcV],%[UVvar]}\n\t"
-        "up31: \n\t"
-
-	"ldrh	v1,[%[SrcU]]\n\t"
-	"add	%[SrcU],%[SrcU],#2\n\t"
-	"bic	v3,v1,#0xFFFFFF00\n\t"
-	"bic	v2,v1,#0xFFFF00FF\n\t"
-	"orr	v3,v3,v2,lsl #8\n\t"//v3=0x00uu00uu
-	"ldrh	v1,[%[SrcV]]\n\t"
-	"add	%[SrcV],%[SrcV],#2\n\t"
-	"bic	v2,v1,#0xFFFFFF00\n\t"
-	"orr	v3,v3,v2,lsl #8\n\t"//v3=0x00uuvvuu
-	"bic	v2,v1,#0xFFFF00FF\n\t"
-	"orr	v3,v3,v2,lsl #16\n\t"//v3=0xvvuuvvuu
-	"str	v3,[%[UVvar]]\n\t"
-	"add	%[UVvar],%[UVvar],#4 \n\t"//4byte skip
-
-        "add	v6,v6,#1 \n\t"//+1
-        "cmp	v6,v5 \n\t"// = stride?
-        "bne	up31 \n\t"//if no - jmp up
-
-	"pop {%[SrcU],%[SrcV],%[UVvar]}\n\t"
-        "ldr	v1,[%[Fvars],%[SrcPitch]]\n\t"
-	"add	%[SrcU],%[SrcU],v1,lsr #1\n\t"
-	"add	%[SrcV],%[SrcV],v1,lsr #1\n\t"
-        "ldr	v2,[%[Fvars],%[DstPitch]]\n\t"
-	"add	%[UVvar],%[UVvar],v2\n\t"
-        "ldr	v2,[%[Fvars],%[Lines]]\n\t"
-        "subs	v2,v2,#1 \n\t"//-1 and set zero flag if 0
-        "str	v2,[%[Fvars],%[Lines]]\n\t"
-        "bne	up30 \n\t"//if no - jmp up0
-	: : [SrcY] "r"(src_Y), [SrcU] "r"(src_U), [SrcV] "r"(src_V), [Yvar] "r"(dst_Y), [UVvar] "r"(dst_UV),
-    [Fvars] "r"(&Fvars), [Stride] "J"(0), [Lines] "J"(4*1), [SrcPitch] "J"(4*2), [DstPitch] "J"(4*3)
-        : "a1","v1","v2","v3","v5","v6","memory"
-
-        );
-#endif
 }
 
 //-----------------------------------------------------------------
@@ -278,11 +118,10 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     CARD32 drw_offset,offset, offset2=0, offset3=0;
     CARD32 tmp, dstPitch;
     Bool ClipEq = TRUE;
-    void *fb_mem;
-    CARD32 offset_mio;
+    OvlMemPgPtr CurMemBuf;
 
-    drw_x &= ~1;
-    drw_y &= ~1;
+//    drw_x &= ~1;
+//    drw_y &= ~1;
 
 //    if(!xf86XVClipVideoHelper(&dstBox, &x1, &x2, &y1, &y2, clipBoxes, width, height))
 //	return Success;
@@ -293,7 +132,6 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     	if(!XVInitStreams(pScrn, drw_x, drw_y, drw_w, drw_h, src_w, src_h, image))
     		return BadAlloc;
     	XVport->videoStatus = CLIENT_VIDEO_INIT;
-//        REGION_COPY(pScrn->pScreen, &XVport->clip, clipBoxes);
     }
 
 
@@ -310,50 +148,46 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     	XVport->y_drw = drw_y;
     }
 
+
     if(XVport->videoStatus == CLIENT_VIDEO_CHNG){
     	ClipEq = FALSE;
     	XVDBG("Video change  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
-    	OvlSetupDrw(pScrn, XVport->OvlPg, drw_x, drw_y, drw_w, drw_h, src_w, src_h);
+    	OvlSetupDrw(XVport->OvlPg, drw_x, drw_y, drw_w, drw_h, src_w, src_h);
 //	XVport->videoStatus = CLIENT_VIDEO_ON;
     	XVport->Uoffset = src_h * src_w;
     	XVport->Voffset = XVport->Uoffset + (XVport->Uoffset>>2);
     }
 
-    src_h = src_h & ~1;
-    src_w = src_w & ~1;//3
-    drw_h = drw_h & ~1;
-    drw_w = drw_w & ~1;
+//    src_h = src_h & ~1;
+//    src_w = src_w & ~1;//3
+
 
     if(XVport->frame_fl){
-    	OvlFlipFb(pScrn, XVport->OvlPg, BACK_FB, 0);
-    	fb_mem = XVport->FrontMapBuf;
-    	offset_mio = XVport->FrontMemBuf->offset_mio;
+    	OvlFlipFb(XVport->OvlPg, BACK_FB, 0);
+    	CurMemBuf = XVport->FrontMemBuf;
     }else{
-    	OvlFlipFb(pScrn, XVport->OvlPg, FRONT_FB, 0);
-    	fb_mem = XVport->BackMapBuf;
-    	offset_mio = XVport->BackMemBuf->offset_mio;
+    	OvlFlipFb(XVport->OvlPg, FRONT_FB, 0);
+    	CurMemBuf = XVport->BackMemBuf;
     }
 
    	switch(image) {
    	case FOURCC_I420:
-   		XVCopyPlanarToFb(buf,buf+XVport->Uoffset,buf+XVport->Voffset, fb_mem,
-   				fb_mem+offset_mio, XVport->disp_pitch, src_h, src_w);
+   		OvlCopyPlanarToFb(CurMemBuf, buf, XVport->Uoffset, XVport->Voffset,	XVport->disp_pitch, src_h, src_w);
    		break;
    	case FOURCC_YV12:
-   		XVCopyPlanarToFb(buf,buf+XVport->Voffset,buf+XVport->Uoffset, fb_mem,
-   				fb_mem+offset_mio, XVport->disp_pitch, src_h, src_w);
+   		OvlCopyPlanarToFb(CurMemBuf, buf, XVport->Voffset, XVport->Uoffset,	XVport->disp_pitch, src_h, src_w);
    		break;
    	case FOURCC_YUY2:
-   		XVCopyPackedToFb(buf, fb_mem, fb_mem+offset_mio, XVport->disp_pitch, src_h, src_w);
+   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->disp_pitch, src_h, src_w, FALSE);
    		break;
    	case FOURCC_UYVY:
-   		XVCopyPackedToFb(buf,  fb_mem+offset_mio, fb_mem, XVport->disp_pitch, src_h, src_w);
+   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->disp_pitch, src_h, src_w, TRUE);
    		break;
 	//    default:
    	}
 
 	if(XVport->videoStatus != CLIENT_VIDEO_ON){
-		OvlFillKeyHelper(pDraw, XVport->colorKey, clipBoxes, TRUE);
+		HWAclFillKeyHelper(pDraw, XVport->colorKey, clipBoxes, TRUE);
     }
 
 	XVport->videoStatus = CLIENT_VIDEO_ON;
@@ -373,9 +207,9 @@ static void XVStopVideo(ScrnInfoPtr pScrn, pointer data, Bool exit)
     	XVDBG("video exit");
         XVport->videoStatus = 0;
         REGION_EMPTY(pScrn->pScreen, &XVport->clip);
-        OvlSetColorKey(pScrn, 0);
+        OvlSetColorKey(0);
 //	OvlEnable(pScrn, XVport->OvlPg, 0);
-        OvlFreeLay(pScrn, XVport->OvlPg);
+        OvlFreeLay(XVport->OvlPg);
     }
     else{
     	XVDBG("video stop");
@@ -426,19 +260,19 @@ XVQueryBestSize(ScrnInfoPtr pScrn, Bool motion,
 		 unsigned int *retW, unsigned int *retH, pointer data)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
-    OvlHWPtr	overlay = pMxv->OvlHW;
+    HWAclPtr hwacl = pMxv->HWAcl;
     XVPortPrivPtr XVport = pMxv->XVport;
 
-    XVDBG("QueryBestSize  vidW=%d, vidH=%d, xres=%d, yres=%d",vidW,vidH,overlay->cur_var.xres,overlay->cur_var.yres);
-    if(drawW > overlay->cur_var.xres)
-	*retW = overlay->cur_var.xres;
+    XVDBG("QueryBestSize  vidW=%d, vidH=%d, xres=%d, yres=%d",vidW,vidH,hwacl->cur_var.xres,hwacl->cur_var.yres);
+    if(drawW > hwacl->cur_var.xres)
+    	*retW = hwacl->cur_var.xres;
     else
-	*retW = drawW;
+    	*retW = drawW;
 
-    if(drawH > overlay->cur_var.yres)
-	*retH = overlay->cur_var.yres;
+    if(drawH > hwacl->cur_var.yres)
+    	*retH = hwacl->cur_var.yres;
     else
-	*retH = drawW;
+    	*retH = drawW;
 }
 
 static int
@@ -476,7 +310,7 @@ static XF86VideoAdaptorPtr XVAllocAdaptor(ScrnInfoPtr pScrn)
 
 	for(i = 0; i < XVPORTS; i++)
     	    adapt->pPortPrivates[i].val = i;
-	if(OvlGetUIBpp(pScrn) == 16)
+	if(OvlGetUIBpp() == 16)
 		XVport->colorKey = 0;//TODO
 	else
 		XVport->colorKey = 0x020202;
@@ -500,7 +334,7 @@ XVInitAdaptor(ScreenPtr pScreen)
     	adapt->type = XvWindowMask | XvInputMask | XvImageMask;
     	adapt->flags = VIDEO_OVERLAID_IMAGES | VIDEO_CLIP_TO_VIEWPORT;
 
-    	adapt->name = "RK30";
+    	adapt->name = "RkXV";
     	adapt->nEncodings = 1;
         adapt->pEncodings = &DummyEncoding[0];
         adapt->nFormats = LARRAY_SIZE(Formats);
@@ -542,12 +376,12 @@ InitXVideo(ScreenPtr pScreen, Bool debug)
     pMxv->XVport = NULL;
     INFMSG("XV:Init begin");
 
-    if(NULL == pMxv->OvlHW){
+    if(NULL == pMxv->HWAcl){
     	ERRMSG("XV:Not found overlay");
     	return;
     }
 
-    OvlHWPtr	overlay = pMxv->OvlHW;
+    HWAclPtr hwacl = pMxv->HWAcl;
 
     newAdaptor = XVInitAdaptor(pScreen);
 

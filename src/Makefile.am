@@ -23,12 +23,12 @@
 # -avoid-version prevents gratuitous .0.0.0 version numbers on the end
 # _ladir passes a dummy rpath to libtool so the thing will actually link
 # TODO: -nostdlib/-Bstatic/-lgcc platform magic, not installing the .a, etc.
-AM_CFLAGS = @XORG_CFLAGS@ -I/usr/include/libdrm
-rk30fb_drv_la_LTLIBRARIES = rk30fb_drv.la
-rk30fb_drv_la_LDFLAGS = -module -avoid-version -lUMP -lpthread
-rk30fb_drv_ladir = @moduledir@/drivers
+AM_CFLAGS = @XORG_CFLAGS@ -I/usr/include/libdrm -I./include
+rkfb_drv_la_LTLIBRARIES = rkfb_drv.la
+rkfb_drv_la_LDFLAGS = -module -avoid-version -lUMP -lpthread -lrklayers
+rkfb_drv_ladir = @moduledir@/drivers
 
-rk30fb_drv_la_SOURCES = \
+rkfb_drv_la_SOURCES = \
          compat-api.h \
          fbdev.c \
          fbdev_priv.h \

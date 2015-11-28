@@ -19,8 +19,8 @@
 #ifndef MALI_UMP_DRI2_H
 #define MALI_UMP_DRI2_H
 
-#include <ump/ump.h>
-#include <ump/ump_ref_drv.h>
+#include <include/ump/ump.h>
+#include <include/ump/ump_ref_drv.h>
 #include "dri2.h"
 
 #include "uthash.h"
@@ -77,10 +77,10 @@ typedef struct {
     void*					BackMapBuf;
     OvlLayPg				OvlPg;
     Bool					debug;
-} Rk30MaliRec, *Rk30MaliPtr;
+} RkMaliRec, *RkMaliPtr;
 
 //**********************************************
-void Rk30MaliDRI2_Init(ScreenPtr pScreen, Bool debug);
-void Rk30MaliDRI2_Close(ScreenPtr pScreen);
+void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug);
+void RkMaliDRI2_Close(ScreenPtr pScreen);
 
 #endif

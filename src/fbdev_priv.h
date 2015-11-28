@@ -17,19 +17,17 @@
 #include "compat-api.h"
 #include <linux/fb.h>
 
-#include "include/ipp.h"
-#include "include/rga.h"
 #include "xf86xv.h"
 #include "xf86fbman.h"
 #include "fbdevhw.h"
 
 #define DEBUG
 
+#define FB_DEV_UI "/dev/fb0"
+
 #define INFMSG(format, args...)		xf86DrvMsg(pScrn->scrnIndex, X_INFO, format "\n", ## args)
 #define WRNMSG(format, args...)		xf86DrvMsg(pScrn->scrnIndex, X_WARNING, format "\n", ## args)
 #define ERRMSG(format, args...)		xf86DrvMsg(pScrn->scrnIndex, X_ERROR, format "\n", ## args)
-
-#define PAGE_MASK    (getpagesize() - 1)
 
 #define MFREE(p)	{free(p);p=NULL;}
 
@@ -51,9 +49,9 @@ typedef struct {
 	OptionInfoPtr		Options;
 	Bool				WaitForSync;
 
-	void				*Rk30Mali;
-	void				*Rk30HWC;
-	void				*OvlHW;
+	void				*RkMali;
+	void				*RkHWC;
+	void				*HWAcl;
     void				*XVport;
     int					DebugLvl;
 
