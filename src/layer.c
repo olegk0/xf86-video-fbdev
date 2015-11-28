@@ -71,8 +71,22 @@ void HWAclFillKeyHelper(DrawablePtr pDraw, unsigned int ColorKey, RegionPtr pReg
 	(*pGC->ops->PolyFillRect)(pDraw, pGC, nbox, rects);
 	MFREE(rects);
 	FreeScratchGC(pGC);
-}
+}//----------------------------------------------------------------
+uint32_t HWAclSetColorKey(ScrnInfoPtr pScrn)
+{
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
+   	HWAclPtr hwacl = pMxv->HWAcl;
+   	uint32_t ret;
 
+   	if(OvlGetUIBpp() == 16)
+   		ret = COLOR_KEY_16;//TODO
+	else
+		ret = COLOR_KEY_32;
+
+   	OvlSetColorKey(ret);
+
+	return ret;
+}
 //++++++++++++++++++++++++++++++init/close+++++++++++++++++++++++++
 int HWAclUpdSavMod(ScrnInfoPtr pScrn)
 {

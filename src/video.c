@@ -96,7 +96,8 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short drw_x, short drw_y, short drw
     	goto err;
     XVDBG("Pitch:%d",XVport->disp_pitch);
 
-    OvlSetColorKey(XVport->colorKey);
+    XVport->colorKey = HWAclSetColorKey(pScrn);
+
     OvlEnable(XVport->OvlPg, 1);
 
     XVDBG("Setup overlay - pass");
@@ -207,7 +208,7 @@ static void XVStopVideo(ScrnInfoPtr pScrn, pointer data, Bool exit)
     	XVDBG("video exit");
         XVport->videoStatus = 0;
         REGION_EMPTY(pScrn->pScreen, &XVport->clip);
-        OvlSetColorKey(0);
+//        OvlSetColorKey(0);
 //	OvlEnable(pScrn, XVport->OvlPg, 0);
         OvlFreeLay(XVport->OvlPg);
     }
@@ -310,10 +311,7 @@ static XF86VideoAdaptorPtr XVAllocAdaptor(ScrnInfoPtr pScrn)
 
 	for(i = 0; i < XVPORTS; i++)
     	    adapt->pPortPrivates[i].val = i;
-	if(OvlGetUIBpp() == 16)
-		XVport->colorKey = 0;//TODO
-	else
-		XVport->colorKey = 0x020202;
+
     XVport->videoStatus = 0;
     XVport->lastPort = -1;
 

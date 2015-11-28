@@ -232,6 +232,7 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     		can_use_overlay = FALSE;
     	}else{//init
     		DebugMsg("MaliDRI2CreateBuffer: Alloc ovl:%d",mali->OvlPg);
+    		mali->colorKey = HWAclSetColorKey(pScrn);
     		OvlSetupFb(mali->OvlPg, 0, 0, pDraw->width, pDraw->height);
     		OvlEnable(mali->OvlPg, 1);
     		mali->FrontMemBuf = OvlGetBufByLay(mali->OvlPg, FRONT_FB);
@@ -416,7 +417,7 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     }
 
     if(Changed){
-    	HWAclFillKeyHelper(pDraw, 0xff000000, pRegion, FALSE);
+    	HWAclFillKeyHelper(pDraw, mali->colorKey, pRegion, FALSE);
     }
 
     if(bufpriv->frame)

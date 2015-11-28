@@ -58,6 +58,7 @@ typedef struct {
     int                     ovl_h;
     unsigned int			lstatus;
 
+    uint32_t				colorKey;
     WindowPtr               pOverlayWin;
     Bool                    bOverlayWinEnabled;
 
