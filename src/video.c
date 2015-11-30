@@ -63,7 +63,8 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short drw_x, short drw_y, short drw
 {       
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     XVPortPrivPtr XVport = pMxv->XVport;
-    int out_mode=0, xres, yres;
+    int xres, yres;
+    OvlLayoutFormatType out_mode;
 
     XVDBG("setup overlay ");
     XVport->OvlPg = OvlAllocLay(SCALEL, ALC_FRONT_BACK_FB);
@@ -85,10 +86,22 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short drw_x, short drw_y, short drw
     XVport->frame_fl = FALSE;
     XVDBG("map buf - pass ");
 
-    out_mode = OvlRkModeByFOURCC(id);
+    switch(id) {
+    case FOURCC_YV12://YVU planar 	needs to be converted into a SemiPlanar format (with HW-RGA or SW)
+    case FOURCC_I420://YUV identical to YV12 except that the U and V plane order is reversed
+    	out_mode = RK_FORMAT_YCrCb_NV12_SP;//SP disp format
+        break;
+    case FOURCC_UYVY://packed U0Y0V0Y1 U2Y2V2Y3		needs to unpacking in SemiPlanar
+    case FOURCC_YUY2://packed low Y0U0Y1V0 hi
+    	out_mode = RK_FORMAT_YCbCr_422_SP;
+    	break;
+    default:
+    	out_mode = RK_FORMAT_DEFAULT;
+    }
+
     XVDBG("FOURCC:%X - rkmode:%X", id, out_mode);
 
-    out_mode = OvlSetupFb(XVport->OvlPg, 0, out_mode, 0, 0);
+    out_mode = OvlSetupFb(XVport->OvlPg, RK_FORMAT_DEFAULT, out_mode, 0, 0);
     XVDBG("OvlSetupFb ret:%d", out_mode);
 
     XVport->disp_pitch = OvlGetVXresByLay(XVport->OvlPg);
@@ -173,16 +186,16 @@ static int XVPutImage(ScrnInfoPtr pScrn,
 
    	switch(image) {
    	case FOURCC_I420:
-   		OvlCopyPlanarToFb(CurMemBuf, buf, XVport->Uoffset, XVport->Voffset,	XVport->disp_pitch, src_h, src_w);
+   		OvlCopyPlanarToFb(CurMemBuf, buf, XVport->Uoffset, XVport->Voffset,	XVport->disp_pitch, src_w, src_h);
    		break;
    	case FOURCC_YV12:
-   		OvlCopyPlanarToFb(CurMemBuf, buf, XVport->Voffset, XVport->Uoffset,	XVport->disp_pitch, src_h, src_w);
+   		OvlCopyPlanarToFb(CurMemBuf, buf, XVport->Voffset, XVport->Uoffset,	XVport->disp_pitch, src_w, src_h);
    		break;
    	case FOURCC_YUY2:
-   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->disp_pitch, src_h, src_w, FALSE);
+   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->disp_pitch, src_w, src_h, FALSE);
    		break;
    	case FOURCC_UYVY:
-   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->disp_pitch, src_h, src_w, TRUE);
+   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->disp_pitch, src_w, src_h, TRUE);
    		break;
 	//    default:
    	}
