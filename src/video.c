@@ -54,12 +54,11 @@ XF86ImageRec Images[] = {
     XVIMAGE_YUY2,			//16bpp	422	packed
     XVIMAGE_UYVY,                      //16bpp MDP_YCRYCB_H2V1 
     XVIMAGE_I420,			//12bpp	Planar 420
-    XVIMAGE_YV12,			//12bpp 
+    XVIMAGE_YV12,			//12bpp
 };
 
 //-------------------------------------------------------------------
-static Bool XVInitStreams(ScrnInfoPtr pScrn, short drw_x, short drw_y, short drw_w,
-						short drw_h, short width, short height, int id)
+static Bool XVInitStreams(ScrnInfoPtr pScrn, short src_w, short src_h, int id)
 {       
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     XVPortPrivPtr XVport = pMxv->XVport;
@@ -105,13 +104,22 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short drw_x, short drw_y, short drw
     XVDBG("OvlSetupFb ret:%d", out_mode);
 
     XVport->disp_pitch = OvlGetVXresByLay(XVport->OvlPg);
-    if(XVport->disp_pitch<=0)
+
+	if(XVport->disp_pitch<=0)
     	goto err;
     XVDBG("Pitch:%d",XVport->disp_pitch);
+
+	XVport->Uoffset = src_h * src_w;
+	XVport->Voffset = XVport->Uoffset + (XVport->Uoffset>>2);
 
     XVport->colorKey = HWAclSetColorKey(pScrn);
 
     OvlEnable(XVport->OvlPg, 1);
+
+	XVport->w_drw = 0;
+	XVport->h_drw = 0;
+	XVport->x_drw = 0;
+	XVport->y_drw = 0;
 
     XVDBG("Setup overlay - pass");
     return TRUE;
@@ -134,16 +142,13 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     Bool ClipEq = TRUE;
     OvlMemPgPtr CurMemBuf;
 
-//    drw_x &= ~1;
-//    drw_y &= ~1;
-
 //    if(!xf86XVClipVideoHelper(&dstBox, &x1, &x2, &y1, &y2, clipBoxes, width, height))
 //	return Success;
 
     if(XVport->videoStatus < CLIENT_VIDEO_INIT){
     	XVDBG("Video init  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X",
 			drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
-    	if(!XVInitStreams(pScrn, drw_x, drw_y, drw_w, drw_h, src_w, src_h, image))
+    	if(!XVInitStreams(pScrn, src_w, src_h, image))
     		return BadAlloc;
     	XVport->videoStatus = CLIENT_VIDEO_INIT;
     }
@@ -154,27 +159,20 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     	RegionCopy(&XVport->clip, clipBoxes);
     }
 
-    if((XVport->w_src != src_w) || (XVport->h_src != src_h)||(XVport->x_drw != drw_x) || (XVport->y_drw != drw_y)){
+    if((XVport->w_drw != drw_w) || (XVport->h_drw != drw_h)||(XVport->x_drw != drw_x) || (XVport->y_drw != drw_y)){
     	XVport->videoStatus = CLIENT_VIDEO_CHNG;
-    	XVport->w_src = src_w;
-    	XVport->h_src = src_h;
+    	XVport->w_drw = drw_w;
+    	XVport->h_drw = drw_h;
     	XVport->x_drw = drw_x;
     	XVport->y_drw = drw_y;
     }
-
 
     if(XVport->videoStatus == CLIENT_VIDEO_CHNG){
     	ClipEq = FALSE;
     	XVDBG("Video change  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
     	OvlSetupDrw(XVport->OvlPg, drw_x, drw_y, drw_w, drw_h, src_w, src_h);
 //	XVport->videoStatus = CLIENT_VIDEO_ON;
-    	XVport->Uoffset = src_h * src_w;
-    	XVport->Voffset = XVport->Uoffset + (XVport->Uoffset>>2);
     }
-
-//    src_h = src_h & ~1;
-//    src_w = src_w & ~1;//3
-
 
     if(XVport->frame_fl){
     	OvlFlipFb(XVport->OvlPg, BACK_FB, 0);
@@ -185,13 +183,13 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     }
 
    	switch(image) {
-   	case FOURCC_I420:
+   	case FOURCC_I420://YYYY	UU	VV
    		OvlCopyPlanarToFb(CurMemBuf, buf, XVport->Uoffset, XVport->Voffset,	XVport->disp_pitch, src_w, src_h);
    		break;
-   	case FOURCC_YV12:
+   	case FOURCC_YV12://YYYY	VV	UU
    		OvlCopyPlanarToFb(CurMemBuf, buf, XVport->Voffset, XVport->Uoffset,	XVport->disp_pitch, src_w, src_h);
    		break;
-   	case FOURCC_YUY2:
+   	case FOURCC_YUY2://YUYV
    		OvlCopyPackedToFb(CurMemBuf, buf, XVport->disp_pitch, src_w, src_h, FALSE);
    		break;
    	case FOURCC_UYVY:

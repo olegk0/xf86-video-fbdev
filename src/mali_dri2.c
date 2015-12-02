@@ -233,7 +233,7 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     	}else{//init
     		DebugMsg("MaliDRI2CreateBuffer: Alloc ovl:%d",mali->OvlPg);
     		mali->colorKey = HWAclSetColorKey(pScrn);
-    		OvlSetupFb(mali->OvlPg, 0, 0, pDraw->width, pDraw->height);
+    		OvlSetupFb(mali->OvlPg, 0, 0, 0, 0);//pDraw->width, pDraw->height
     		OvlEnable(mali->OvlPg, 1);
     		mali->FrontMemBuf = OvlGetBufByLay(mali->OvlPg, FRONT_FB);
     		mali->BackMemBuf = OvlGetBufByLay(mali->OvlPg, BACK_FB);
@@ -402,7 +402,7 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     if(mali->ovl_h != pDraw->height || mali->ovl_w != pDraw->width){
     	mali->ovl_h = pDraw->height;
     	mali->ovl_w = pDraw->width;
-    	ret = OvlSetModeFb(mali->OvlPg,mali->ovl_w, mali->ovl_h,0);
+    	ret = OvlSetModeFb(mali->OvlPg, 0, 0, 0);//mali->ovl_w, mali->ovl_h
 //    	ret = OvlSetupFb(pScrn, mali->OvlPg, 0, 0, pDraw->width, pDraw->height)
         DebugMsg("Change size to w:%d,h:%d\n", pDraw->width,pDraw->height);
         Changed = TRUE;
