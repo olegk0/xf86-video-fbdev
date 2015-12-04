@@ -89,10 +89,12 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short src_w, short src_h, int id)
     case FOURCC_YV12://YVU planar 	needs to be converted into a SemiPlanar format (with HW-RGA or SW)
     case FOURCC_I420://YUV identical to YV12 except that the U and V plane order is reversed
     	out_mode = RK_FORMAT_YCrCb_NV12_SP;//SP disp format
+    	XVport->src_pitch = src_w;
         break;
     case FOURCC_UYVY://packed U0Y0V0Y1 U2Y2V2Y3		needs to unpacking in SemiPlanar
     case FOURCC_YUY2://packed low Y0U0Y1V0 hi
     	out_mode = RK_FORMAT_YCbCr_422_SP;
+    	XVport->src_pitch = src_w<<1;
     	break;
     default:
     	out_mode = RK_FORMAT_DEFAULT;
@@ -184,16 +186,16 @@ static int XVPutImage(ScrnInfoPtr pScrn,
 
    	switch(image) {
    	case FOURCC_I420://YYYY	UU	VV
-   		OvlCopyPlanarToFb(CurMemBuf, buf, XVport->Uoffset, XVport->Voffset,	XVport->disp_pitch, src_w, src_h);
+   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Uoffset, buf+XVport->Voffset, XVport->src_pitch,	XVport->disp_pitch, src_w, src_h);
    		break;
    	case FOURCC_YV12://YYYY	VV	UU
-   		OvlCopyPlanarToFb(CurMemBuf, buf, XVport->Voffset, XVport->Uoffset,	XVport->disp_pitch, src_w, src_h);
+   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Voffset, buf+XVport->Uoffset, XVport->src_pitch,	XVport->disp_pitch, src_w, src_h);
    		break;
    	case FOURCC_YUY2://YUYV
-   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->disp_pitch, src_w, src_h, FALSE);
+   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, XVport->disp_pitch, src_w, src_h, FALSE);
    		break;
    	case FOURCC_UYVY:
-   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->disp_pitch, src_w, src_h, TRUE);
+   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, XVport->disp_pitch, src_w, src_h, TRUE);
    		break;
 	//    default:
    	}
