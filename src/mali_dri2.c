@@ -248,7 +248,7 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     mali->lstatus++;
     if (can_use_overlay){
         mali->pOverlayWin = (WindowPtr)pDraw;
-        buffer->pitch = buffer->cpp * OvlGetVXresByLay(mali->OvlPg);
+//        buffer->pitch = buffer->cpp * OvlGetVXresByLay(mali->OvlPg);
         privates->handle = UMP_INVALID_MEMORY_HANDLE;
         privates->frame = mali->lstatus & 1;
     	if(privates->frame){
