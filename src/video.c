@@ -187,20 +187,20 @@ static int XVPutImage(ScrnInfoPtr pScrn,
 
    	switch(image) {
    	case FOURCC_I420://YYYY	UU	VV
-//   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Uoffset, buf+XVport->Voffset, XVport->src_pitch,	XVport->disp_pitch, src_w, src_h);
-   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Uoffset, buf+XVport->Voffset, XVport->src_pitch, src_w, src_h);
+   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Uoffset, buf+XVport->Voffset, XVport->src_pitch,	XVport->disp_pitch, src_w, src_h);
+//   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Uoffset, buf+XVport->Voffset, XVport->src_pitch, src_w, src_h);
    		break;
    	case FOURCC_YV12://YYYY	VV	UU
-//   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Voffset, buf+XVport->Uoffset, XVport->src_pitch,	XVport->disp_pitch, src_w, src_h);
-   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Voffset, buf+XVport->Uoffset, XVport->src_pitch, src_w, src_h);
+   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Voffset, buf+XVport->Uoffset, XVport->src_pitch,	XVport->disp_pitch, src_w, src_h);
+//   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Voffset, buf+XVport->Uoffset, XVport->src_pitch, src_w, src_h);
    		break;
    	case FOURCC_YUY2://YUYV
-//   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, XVport->disp_pitch, src_w, src_h, FALSE);
-   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, src_w, src_h, FALSE);
+   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, XVport->disp_pitch, src_w, src_h, FALSE);
+//   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, src_w, src_h, FALSE);
    		break;
    	case FOURCC_UYVY:
-//   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, XVport->disp_pitch, src_w, src_h, TRUE);
-   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, src_w, src_h, TRUE);
+   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, XVport->disp_pitch, src_w, src_h, TRUE);
+//   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, src_w, src_h, TRUE);
    		break;
 	//    default:
    	}
