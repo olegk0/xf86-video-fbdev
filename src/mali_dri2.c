@@ -233,7 +233,7 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     	}else{//init
     		DebugMsg("MaliDRI2CreateBuffer: Alloc ovl:%d",mali->OvlPg);
     		mali->colorKey = HWAclSetColorKey(pScrn);
-    		OvlSetupFb(mali->OvlPg, 0, 0, 0, 0);//pDraw->width, pDraw->height
+    		OvlSetupFb(mali->OvlPg, RK_FORMAT_DEFAULT, RK_FORMAT_DEFAULT, pDraw->width, pDraw->height);
     		OvlEnable(mali->OvlPg, 1);
     		mali->FrontMemBuf = OvlGetBufByLay(mali->OvlPg, FRONT_FB);
     		mali->BackMemBuf = OvlGetBufByLay(mali->OvlPg, BACK_FB);
@@ -248,7 +248,7 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     mali->lstatus++;
     if (can_use_overlay){
         mali->pOverlayWin = (WindowPtr)pDraw;
-//        buffer->pitch = buffer->cpp * OvlGetVXresByLay(mali->OvlPg);
+        buffer->pitch = buffer->cpp * OvlGetVXresByLay(mali->OvlPg);
         privates->handle = UMP_INVALID_MEMORY_HANDLE;
         privates->frame = mali->lstatus & 1;
     	if(privates->frame){
@@ -402,17 +402,18 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     if(mali->ovl_h != pDraw->height || mali->ovl_w != pDraw->width){
     	mali->ovl_h = pDraw->height;
     	mali->ovl_w = pDraw->width;
-    	ret = OvlSetModeFb(mali->OvlPg, 0, 0, 0);//mali->ovl_w, mali->ovl_h
-//    	ret = OvlSetupFb(pScrn, mali->OvlPg, 0, 0, pDraw->width, pDraw->height)
-        DebugMsg("Change size to w:%d,h:%d\n", pDraw->width,pDraw->height);
+//    	ret = OvlSetModeFb(mali->OvlPg, pDraw->width,pDraw->height, RK_FORMAT_DEFAULT);
+    	ret = OvlSetupFb(mali->OvlPg, RK_FORMAT_DEFAULT, RK_FORMAT_DEFAULT, pDraw->width, pDraw->height);
+        DebugMsg("Change size to w:%d,h:%d ret:%d\n", pDraw->width,pDraw->height, ret);
+        mali->colorKey = HWAclSetColorKey(pScrn);
         Changed = TRUE;
     }
 
-    if(mali->ovl_x != pDraw->x || mali->ovl_y != pDraw->y){
+    if(mali->ovl_x != pDraw->x || mali->ovl_y != pDraw->y || Changed){
     	mali->ovl_x = pDraw->x;
     	mali->ovl_y = pDraw->y;
     	ret = OvlSetupDrw(mali->OvlPg, mali->ovl_x, mali->ovl_y, mali->ovl_w, mali->ovl_h, mali->ovl_w, mali->ovl_h);
-        DebugMsg("Change pos to x:%d,y:%d\n", pDraw->x,pDraw->y);
+        DebugMsg("Change pos to x:%d,y:%d ret:%d\n", pDraw->x,pDraw->y, ret);
         Changed = TRUE;
     }
 

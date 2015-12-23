@@ -102,11 +102,10 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short src_w, short src_h, int id)
 
     XVDBG("FOURCC:%X - rkmode:%X", id, out_mode);
 
-    out_mode = OvlSetupFb(XVport->OvlPg, RK_FORMAT_DEFAULT, out_mode, 0, 0);
+    out_mode = OvlSetupFb(XVport->OvlPg, RK_FORMAT_DEFAULT, out_mode, src_w, src_h);
     XVDBG("OvlSetupFb ret:%d", out_mode);
 
-    //XVport->disp_pitch = OvlGetVXresByLay(XVport->OvlPg);
-    XVport->disp_pitch = src_w;
+    XVport->disp_pitch = OvlGetVXresByLay(XVport->OvlPg);
 
 	if(XVport->disp_pitch<=0)
     	goto err;
@@ -188,19 +187,15 @@ static int XVPutImage(ScrnInfoPtr pScrn,
    	switch(image) {
    	case FOURCC_I420://YYYY	UU	VV
    		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Uoffset, buf+XVport->Voffset, XVport->src_pitch,	XVport->disp_pitch, src_w, src_h);
-//   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Uoffset, buf+XVport->Voffset, XVport->src_pitch, src_w, src_h);
    		break;
    	case FOURCC_YV12://YYYY	VV	UU
    		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Voffset, buf+XVport->Uoffset, XVport->src_pitch,	XVport->disp_pitch, src_w, src_h);
-//   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Voffset, buf+XVport->Uoffset, XVport->src_pitch, src_w, src_h);
    		break;
    	case FOURCC_YUY2://YUYV
    		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, XVport->disp_pitch, src_w, src_h, FALSE);
-//   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, src_w, src_h, FALSE);
    		break;
    	case FOURCC_UYVY:
    		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, XVport->disp_pitch, src_w, src_h, TRUE);
-//   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, src_w, src_h, TRUE);
    		break;
 	//    default:
    	}

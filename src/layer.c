@@ -76,16 +76,16 @@ uint32_t HWAclSetColorKey(ScrnInfoPtr pScrn)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
    	HWAclPtr hwacl = pMxv->HWAcl;
-   	uint32_t ret;
+   	uint32_t tmp;
 
    	if(OvlGetUIBpp() == 16)
-   		ret = COLOR_KEY_16;//TODO
+   		tmp = COLOR_KEY_16;//TODO
 	else
-		ret = COLOR_KEY_32;
+		tmp = COLOR_KEY_32;
 
-   	OvlSetColorKey(ret);
+   	OvlSetColorKey(tmp);
 
-	return ret;
+	return tmp;
 }
 //++++++++++++++++++++++++++++++init/close+++++++++++++++++++++++++
 int HWAclUpdSavMod(ScrnInfoPtr pScrn)
