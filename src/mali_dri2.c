@@ -405,14 +405,14 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
 //    	ret = OvlSetModeFb(mali->OvlPg, pDraw->width,pDraw->height, RK_FORMAT_DEFAULT);
     	ret = OvlSetupFb(mali->OvlPg, RK_FORMAT_DEFAULT, RK_FORMAT_DEFAULT, pDraw->width, pDraw->height);
         DebugMsg("Change size to w:%d,h:%d ret:%d\n", pDraw->width,pDraw->height, ret);
-        mali->colorKey = HWAclSetColorKey(pScrn);
+//        mali->colorKey = HWAclSetColorKey(pScrn);
         Changed = TRUE;
     }
 
     if(mali->ovl_x != pDraw->x || mali->ovl_y != pDraw->y || Changed){
     	mali->ovl_x = pDraw->x;
     	mali->ovl_y = pDraw->y;
-    	ret = OvlSetupDrw(mali->OvlPg, mali->ovl_x, mali->ovl_y, mali->ovl_w, mali->ovl_h, mali->ovl_w, mali->ovl_h);
+    	ret = OvlSetupDrw(mali->OvlPg, mali->ovl_x, mali->ovl_y, pDraw->width, pDraw->height);
         DebugMsg("Change pos to x:%d,y:%d ret:%d\n", pDraw->x,pDraw->y, ret);
         Changed = TRUE;
     }

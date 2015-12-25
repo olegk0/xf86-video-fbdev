@@ -172,7 +172,7 @@ static int XVPutImage(ScrnInfoPtr pScrn,
     if(XVport->videoStatus == CLIENT_VIDEO_CHNG){
     	ClipEq = FALSE;
     	XVDBG("Video change  drw_x=%d,drw_y=%d,drw_w=%d,drw_h=%d,src_x=%d,src_y=%d,src_w=%d,src_h=%d,width=%d,height=%d, image_id=%X",drw_x,drw_y,drw_w,drw_h,src_x,src_y,src_w,src_h,width, height, image);
-    	OvlSetupDrw(XVport->OvlPg, drw_x, drw_y, drw_w, drw_h, src_w, src_h);
+    	OvlSetupDrw(XVport->OvlPg, drw_x, drw_y, drw_w, drw_h);
 //	XVport->videoStatus = CLIENT_VIDEO_ON;
     }
 
