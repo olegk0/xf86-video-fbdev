@@ -142,7 +142,7 @@ void InitHWAcl(ScreenPtr pScreen, Bool debug)
 
     INFMSG( "HW:Initialize overlays");
 
-    ret = Open_RkLayers();
+    ret = Open_RkLayers(TRUE);
     if(ret < 0){
     	ERRMSG( "HW:Error init RkOverlays:%d",ret);
     	return;
