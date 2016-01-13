@@ -234,7 +234,7 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     		DebugMsg("MaliDRI2CreateBuffer: Alloc ovl:%d",mali->OvlPg);
     		mali->colorKey = HWAclSetColorKey(pScrn);
     		OvlSetupFb(mali->OvlPg, RK_FORMAT_DEFAULT, RK_FORMAT_DEFAULT, pDraw->width, pDraw->height);
-    		OvlEnable(mali->OvlPg, 1);
+    		OvlEnable(mali->OvlPg, 1, 0);
     		mali->FrontMemBuf = OvlGetBufByLay(mali->OvlPg, FRONT_FB);
     		mali->BackMemBuf = OvlGetBufByLay(mali->OvlPg, BACK_FB);
     		mali->ump_fb_front_secure_id = OvlGetSidByMemPg(mali->FrontMemBuf);
@@ -300,9 +300,9 @@ static void MaliDRI2DestroyBuffer(DrawablePtr pDraw, DRI2Buffer2Ptr buffer)
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     RkMaliPtr mali = FBDEVPTR(pScrn)->RkMali;
 
-    DebugMsg("DRI2DestroyBuffer %s=%p, buf=%p:%p, att=%d\n",
+    DebugMsg("DRI2DestroyBuffer %s=%p, buf=%p:%p, att=%d lstatus=%d\n",
              pDraw->type == DRAWABLE_WINDOW ? "win" : "pix",
-             pDraw, buffer, buffer->driverPrivate, buffer->attachment);
+             pDraw, buffer, buffer->driverPrivate, buffer->attachment, mali->lstatus);
 
     if (buffer != NULL) {
     	if(buffer->driverPrivate != NULL){
@@ -421,6 +421,7 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     	HWAclFillKeyHelper(pDraw, mali->colorKey, pRegion, FALSE);
     }
 
+    OvlWaitSync(mali->OvlPg);
     if(bufpriv->frame)
     	OvlFlipFb(mali->OvlPg, FRONT_FB, 0);
     else

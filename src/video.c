@@ -116,7 +116,7 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short src_w, short src_h, int id)
 
     XVport->colorKey = HWAclSetColorKey(pScrn);
 
-    OvlEnable(XVport->OvlPg, 1);
+    OvlEnable(XVport->OvlPg, 1, 1);
 
 	XVport->w_drw = 0;
 	XVport->h_drw = 0;
@@ -222,7 +222,6 @@ static void XVStopVideo(ScrnInfoPtr pScrn, pointer data, Bool exit)
         XVport->videoStatus = 0;
         REGION_EMPTY(pScrn->pScreen, &XVport->clip);
 //        OvlSetColorKey(0);
-//	OvlEnable(pScrn, XVport->OvlPg, 0);
         OvlFreeLay(XVport->OvlPg);
     }
     else{
