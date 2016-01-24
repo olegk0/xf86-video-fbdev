@@ -1,5 +1,4 @@
 /*
-
  *  For rk3066
  *  Author: olegk0 <olegvedi@gmail.com>
  *
@@ -89,12 +88,12 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short src_w, short src_h, int id)
     case FOURCC_YV12://YVU planar 	needs to be converted into a SemiPlanar format (with HW-RGA or SW)
     case FOURCC_I420://YUV identical to YV12 except that the U and V plane order is reversed
     	out_mode = RK_FORMAT_YCrCb_NV12_SP;//SP disp format
-    	XVport->src_pitch = src_w;
+//    	XVport->src_pitch = (src_w + 3)& ~3;
         break;
     case FOURCC_UYVY://packed U0Y0V0Y1 U2Y2V2Y3		needs to unpacking in SemiPlanar
     case FOURCC_YUY2://packed low Y0U0Y1V0 hi
     	out_mode = RK_FORMAT_YCbCr_422_SP;
-    	XVport->src_pitch = src_w<<1;
+//    	XVport->src_pitch = src_w<<1;
     	break;
     default:
     	out_mode = RK_FORMAT_DEFAULT;
@@ -111,8 +110,13 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short src_w, short src_h, int id)
     	goto err;
     XVDBG("Pitch:%d",XVport->disp_pitch);
 
-	XVport->Uoffset = src_h * src_w;
-	XVport->Voffset = XVport->Uoffset + (XVport->Uoffset>>2);
+//	XVport->Uoffset = src_h * src_w;
+//	XVport->Voffset = XVport->Uoffset + (XVport->Uoffset>>2);
+
+	XVDBG("Pitch src y:%d",XVport->src_pitch_y);
+	XVDBG("Pitch src c:%d",XVport->src_pitch_c);
+	XVDBG("Pitch U offs:%d",XVport->Uoffset);
+	XVDBG("Pitch V offs:%d",XVport->Voffset);
 
     XVport->colorKey = HWAclSetColorKey(pScrn);
 
@@ -186,16 +190,18 @@ static int XVPutImage(ScrnInfoPtr pScrn,
 
    	switch(image) {
    	case FOURCC_I420://YYYY	UU	VV
-   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Uoffset, buf+XVport->Voffset, XVport->src_pitch,	XVport->disp_pitch, src_w, src_h);
+   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Uoffset, buf+XVport->Voffset,
+   				XVport->disp_pitch, XVport->src_pitch_y, XVport->src_pitch_c, src_w, src_h);
    		break;
    	case FOURCC_YV12://YYYY	VV	UU
-   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Voffset, buf+XVport->Uoffset, XVport->src_pitch,	XVport->disp_pitch, src_w, src_h);
+   		OvlCopyPlanarToFb(CurMemBuf, buf, buf+XVport->Voffset, buf+XVport->Uoffset,
+   				XVport->disp_pitch, XVport->src_pitch_y, XVport->src_pitch_c, src_w, src_h);
    		break;
    	case FOURCC_YUY2://YUYV
-   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, XVport->disp_pitch, src_w, src_h, FALSE);
+   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->disp_pitch, XVport->src_pitch_y, src_w, src_h, 0);
    		break;
    	case FOURCC_UYVY:
-   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->src_pitch, XVport->disp_pitch, src_w, src_h, TRUE);
+   		OvlCopyPackedToFb(CurMemBuf, buf, XVport->disp_pitch, XVport->src_pitch_y, src_w, src_h, 1);
    		break;
 	//    default:
    	}
@@ -235,6 +241,8 @@ static int XVQueryImageAttributes(ScrnInfoPtr pScrn, int id,
 		  unsigned short *w, unsigned short *h,
 		  int *pitches, int *offsets)
 {
+    FBDevPtr pMxv = FBDEVPTR(pScrn);
+    XVPortPrivPtr XVport = pMxv->XVport;
     int size, tmp;
 
     *w = (*w + 1) & ~1;
@@ -245,20 +253,52 @@ static int XVQueryImageAttributes(ScrnInfoPtr pScrn, int id,
     case FOURCC_I420:
         *h = (*h + 1) & ~1;
         size = (*w + 3) & ~3;
-        if(pitches) pitches[0] = size;
+        XVport->src_pitch_y = size;
+        if(pitches){
+        	pitches[0] = size;
+//        	XVport->src_pitch_y = size;
+        }
+//        else
+//        	XVport->src_pitch_y = *w;
+
         size *= *h;
-        if(offsets) offsets[1] = size;
+
+    	XVport->Uoffset = size;
+        if(offsets){
+        	offsets[1] = size;
+//        	XVport->Uoffset = size;
+        }
+//        else
+//        	XVport->Uoffset = *w * *h;
+
         tmp = ((*w >> 1) + 3) & ~3;
-        if(pitches) pitches[1] = pitches[2] = tmp;
+
+    	XVport->src_pitch_c = tmp;
+        if(pitches){
+        	pitches[1] = pitches[2] = tmp;
+//        	XVport->src_pitch_c = tmp;
+        }
+//        else
+//        	XVport->src_pitch_c = XVport->src_pitch_y >> 1;
+
         tmp *= (*h >> 1);
         size += tmp;
-        if(offsets) offsets[2] = size;
+
+    	XVport->Voffset = size;
+        if(offsets){
+        	offsets[2] = size;
+//        	XVport->Voffset = size;
+        }
+//        else
+//        	XVport->Voffset = XVport->Uoffset + (XVport->Uoffset>>2);
+
         size += tmp;
         break;
     case FOURCC_UYVY:
     case FOURCC_YUY2:
     default:
         size = *w << 1;
+        XVport->src_pitch_y = size;
         if(pitches) pitches[0] = size;
         size *= *h;
         break;
@@ -328,6 +368,11 @@ static XF86VideoAdaptorPtr XVAllocAdaptor(ScrnInfoPtr pScrn)
     XVport->lastPort = -1;
 
     pMxv->XVport = XVport;
+
+	XVport->Uoffset = 0;
+	XVport->Voffset = 0;
+	XVport->src_pitch_y = 0;
+	XVport->src_pitch_c = 0;
 
     return adapt;
 }
@@ -430,18 +475,16 @@ InitXVideo(ScreenPtr pScreen, Bool debug)
     }
 
     if(newAdaptors)
-    	MFREE(newAdaptors);//xfree
+    	MFREE(newAdaptors);
 }
 
-void
-CloseXVideo(ScreenPtr pScreen)
+void CloseXVideo(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     FBDevPtr pMxv = FBDEVPTR(pScrn);
 
     if(pMxv->XVport != NULL){
     	MFREE(pMxv->XVport);
-		pMxv->XVport = NULL;
     }
     INFMSG("XV:Closed");
 }

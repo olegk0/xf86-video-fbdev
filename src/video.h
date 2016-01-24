@@ -49,7 +49,8 @@ typedef struct {
     void*			BackMapBuf;
     OvlLayPg		OvlPg;
     int				disp_pitch;
-    int				src_pitch;
+    int				src_pitch_y;
+    int				src_pitch_c;
     Bool			frame_fl;
     Bool			debug;
 } XVPortPrivRec, *XVPortPrivPtr;
