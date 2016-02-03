@@ -22,8 +22,8 @@
 
 #include "rk_layers.h"
 
-#define COLOR_KEY_32	0xFF020202
-#define COLOR_KEY_16	0xFF000000
+#define COLOR_KEY_32	0x020202
+#define COLOR_KEY_16	0x0
 
 typedef struct {
 	int				fd_UI;

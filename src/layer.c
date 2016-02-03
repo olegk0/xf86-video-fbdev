@@ -83,7 +83,7 @@ uint32_t HWAclSetColorKey(ScrnInfoPtr pScrn)
 	else
 		tmp = COLOR_KEY_32;
 
-   	OvlSetColorKey(tmp);
+   	OvlSetColorKey(0xff000000 | tmp);
 
 	return tmp;
 }
@@ -142,7 +142,7 @@ void InitHWAcl(ScreenPtr pScreen, Bool debug)
 
     INFMSG( "HW:Initialize overlays");
 
-    ret = Open_RkLayers();
+    ret = Open_RkLayers(1);
     if(ret < 0){
     	ERRMSG( "HW:Error init RkOverlays:%d",ret);
     	return;
