@@ -37,8 +37,8 @@ typedef struct {
 	uint32_t	x_drw;
 	uint32_t	y_drw;
 
-	uint32_t	w_src;
-	uint32_t	h_src;
+	uint32_t	w_drw;
+	uint32_t	h_drw;
 
 	uint32_t	Uoffset;
 	uint32_t	Voffset;
@@ -49,6 +49,8 @@ typedef struct {
     void*			BackMapBuf;
     OvlLayPg		OvlPg;
     int				disp_pitch;
+    int				src_pitch_y;
+    int				src_pitch_c;
     Bool			frame_fl;
     Bool			debug;
 } XVPortPrivRec, *XVPortPrivPtr;

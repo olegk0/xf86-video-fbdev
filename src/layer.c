@@ -76,16 +76,16 @@ uint32_t HWAclSetColorKey(ScrnInfoPtr pScrn)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
    	HWAclPtr hwacl = pMxv->HWAcl;
-   	uint32_t ret;
+   	uint32_t tmp;
 
    	if(OvlGetUIBpp() == 16)
-   		ret = COLOR_KEY_16;//TODO
+   		tmp = COLOR_KEY_16;//TODO
 	else
-		ret = COLOR_KEY_32;
+		tmp = COLOR_KEY_32;
 
-   	OvlSetColorKey(ret);
+   	OvlSetColorKey(0xff000000 | tmp);
 
-	return ret;
+	return tmp;
 }
 //++++++++++++++++++++++++++++++init/close+++++++++++++++++++++++++
 int HWAclUpdSavMod(ScrnInfoPtr pScrn)
@@ -142,7 +142,7 @@ void InitHWAcl(ScreenPtr pScreen, Bool debug)
 
     INFMSG( "HW:Initialize overlays");
 
-    ret = Open_RkLayers();
+    ret = Open_RkLayers(1);
     if(ret < 0){
     	ERRMSG( "HW:Error init RkOverlays:%d",ret);
     	return;
@@ -158,6 +158,7 @@ void InitHWAcl(ScreenPtr pScreen, Bool debug)
     HWAclUpdSavMod(pScrn);
     hwacl->debug = debug;
 
+    pMxv->HWAcl = hwacl;
     return;
 }
 

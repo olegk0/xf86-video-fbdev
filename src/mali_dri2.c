@@ -233,8 +233,8 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     	}else{//init
     		DebugMsg("MaliDRI2CreateBuffer: Alloc ovl:%d",mali->OvlPg);
     		mali->colorKey = HWAclSetColorKey(pScrn);
-    		OvlSetupFb(mali->OvlPg, 0, 0, pDraw->width, pDraw->height);
-    		OvlEnable(mali->OvlPg, 1);
+    		OvlSetupFb(mali->OvlPg, RK_FORMAT_DEFAULT, RK_FORMAT_DEFAULT, pDraw->width, pDraw->height);
+    		OvlEnable(mali->OvlPg, 1, 0);
     		mali->FrontMemBuf = OvlGetBufByLay(mali->OvlPg, FRONT_FB);
     		mali->BackMemBuf = OvlGetBufByLay(mali->OvlPg, BACK_FB);
     		mali->ump_fb_front_secure_id = OvlGetSidByMemPg(mali->FrontMemBuf);
@@ -300,9 +300,9 @@ static void MaliDRI2DestroyBuffer(DrawablePtr pDraw, DRI2Buffer2Ptr buffer)
     ScrnInfoPtr pScrn = xf86Screens[pScreen->myNum];
     RkMaliPtr mali = FBDEVPTR(pScrn)->RkMali;
 
-    DebugMsg("DRI2DestroyBuffer %s=%p, buf=%p:%p, att=%d\n",
+    DebugMsg("DRI2DestroyBuffer %s=%p, buf=%p:%p, att=%d lstatus=%d\n",
              pDraw->type == DRAWABLE_WINDOW ? "win" : "pix",
-             pDraw, buffer, buffer->driverPrivate, buffer->attachment);
+             pDraw, buffer, buffer->driverPrivate, buffer->attachment, mali->lstatus);
 
     if (buffer != NULL) {
     	if(buffer->driverPrivate != NULL){
@@ -402,17 +402,18 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     if(mali->ovl_h != pDraw->height || mali->ovl_w != pDraw->width){
     	mali->ovl_h = pDraw->height;
     	mali->ovl_w = pDraw->width;
-    	ret = OvlSetModeFb(mali->OvlPg,mali->ovl_w, mali->ovl_h,0);
-//    	ret = OvlSetupFb(pScrn, mali->OvlPg, 0, 0, pDraw->width, pDraw->height)
-        DebugMsg("Change size to w:%d,h:%d\n", pDraw->width,pDraw->height);
+//    	ret = OvlSetModeFb(mali->OvlPg, pDraw->width,pDraw->height, RK_FORMAT_DEFAULT);
+    	ret = OvlSetupFb(mali->OvlPg, RK_FORMAT_DEFAULT, RK_FORMAT_DEFAULT, pDraw->width, pDraw->height);
+        DebugMsg("Change size to w:%d,h:%d ret:%d\n", pDraw->width,pDraw->height, ret);
+//        mali->colorKey = HWAclSetColorKey(pScrn);
         Changed = TRUE;
     }
 
-    if(mali->ovl_x != pDraw->x || mali->ovl_y != pDraw->y){
+    if(mali->ovl_x != pDraw->x || mali->ovl_y != pDraw->y || Changed){
     	mali->ovl_x = pDraw->x;
     	mali->ovl_y = pDraw->y;
-    	ret = OvlSetupDrw(mali->OvlPg, mali->ovl_x, mali->ovl_y, mali->ovl_w, mali->ovl_h, mali->ovl_w, mali->ovl_h);
-        DebugMsg("Change pos to x:%d,y:%d\n", pDraw->x,pDraw->y);
+    	ret = OvlSetupDrw(mali->OvlPg, mali->ovl_x, mali->ovl_y, pDraw->width, pDraw->height);
+        DebugMsg("Change pos to x:%d,y:%d ret:%d\n", pDraw->x,pDraw->y, ret);
         Changed = TRUE;
     }
 
@@ -420,6 +421,7 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     	HWAclFillKeyHelper(pDraw, mali->colorKey, pRegion, FALSE);
     }
 
+    OvlWaitSync(mali->OvlPg);
     if(bufpriv->frame)
     	OvlFlipFb(mali->OvlPg, FRONT_FB, 0);
     else
