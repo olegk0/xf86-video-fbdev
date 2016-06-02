@@ -65,8 +65,8 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short src_w, short src_h, int id)
     OvlLayoutFormatType out_mode;
 
     XVDBG("setup overlay ");
-    XVport->OvlPg = OvlAllocLay(SCALEL, ALC_FRONT_BACK_FB);
-    if(XVport->OvlPg == ERRORL)
+    XVport->OvlPg = OvlAllocLay(SCALE_L, ALC_FRONT_BACK_FB);
+    if(XVport->OvlPg == ERROR_L)
     	return FALSE;
 
     XVDBG("alloc overlay - pass:%d",XVport->OvlPg);
@@ -87,21 +87,21 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short src_w, short src_h, int id)
     switch(id) {
     case FOURCC_YV12://YVU planar 	needs to be converted into a SemiPlanar format (with HW-RGA or SW)
     case FOURCC_I420://YUV identical to YV12 except that the U and V plane order is reversed
-    	out_mode = RK_FORMAT_YCrCb_NV12_SP;//SP disp format
+    	out_mode = RKL_FORMAT_YCrCb_NV12_SP;//SP disp format
 //    	XVport->src_pitch = (src_w + 3)& ~3;
         break;
     case FOURCC_UYVY://packed U0Y0V0Y1 U2Y2V2Y3		needs to unpacking in SemiPlanar
     case FOURCC_YUY2://packed low Y0U0Y1V0 hi
-    	out_mode = RK_FORMAT_YCbCr_422_SP;
+    	out_mode = RKL_FORMAT_YCbCr_422_SP;
 //    	XVport->src_pitch = src_w<<1;
     	break;
     default:
-    	out_mode = RK_FORMAT_DEFAULT;
+    	out_mode = RKL_FORMAT_DEFAULT;
     }
 
     XVDBG("FOURCC:%X - rkmode:%X", id, out_mode);
 
-    out_mode = OvlSetupFb(XVport->OvlPg, RK_FORMAT_DEFAULT, out_mode, src_w, src_h);
+    out_mode = OvlSetupFb(XVport->OvlPg, out_mode, src_w, src_h);
     XVDBG("OvlSetupFb ret:%d", out_mode);
 
     XVport->disp_pitch = OvlGetVXresByLay(XVport->OvlPg);

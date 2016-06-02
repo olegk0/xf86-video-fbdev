@@ -48,6 +48,7 @@ typedef struct {
 	int					nDGAMode;
 	OptionInfoPtr		Options;
 	Bool				WaitForSync;
+//	Bool				HWLayerFor3D;
 
 	void				*RkMali;
 	void				*RkHWC;

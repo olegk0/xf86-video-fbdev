@@ -111,7 +111,8 @@ typedef enum {
 	OPTION_HWBPP,
 	OPTION_HWCURSOR,
 	OPTION_DEBUG,
-//	OPTION_WAITSYNC
+	OPTION_WAITSYNC,
+	OPTION_HWLAYER3D,
 } FBDevOpts;
 
 static const OptionInfoRec FBDevOptions[] = {
@@ -121,7 +122,8 @@ static const OptionInfoRec FBDevOptions[] = {
 	{ OPTION_HWBPP,		"HWbpp",	OPTV_INTEGER,	{0},	FALSE },
 	{ OPTION_HWCURSOR,	"HWCursor",	OPTV_BOOLEAN,	{0},	FALSE },
 	{ OPTION_DEBUG,		"debug",	OPTV_INTEGER,	{0},	FALSE },
-//	{ OPTION_WAITSYNC,	"WaitForSync",	OPTV_BOOLEAN,	{0},	FALSE },
+	{ OPTION_WAITSYNC,	"WaitForSync",	OPTV_BOOLEAN,	{0},	FALSE },
+	{ OPTION_HWLAYER3D,	"HWLayerFor3D",	OPTV_BOOLEAN,	{0},	FALSE },
 	{ -1,			NULL,		OPTV_NONE,	{0},	FALSE }
 };
 
@@ -807,14 +809,15 @@ FBDevScreenInit(SCREEN_INIT_ARGS_DECL)
 	fPtr->CloseScreen = pScreen->CloseScreen;
 	pScreen->CloseScreen = FBDevCloseScreen;
 
-//	fPtr->WaitForSync = xf86ReturnOptValBool(fPtr->Options, OPTION_WAITSYNC, FALSE);
+	fPtr->WaitForSync = xf86ReturnOptValBool(fPtr->Options, OPTION_WAITSYNC, FALSE);
 	InitHWAcl(pScreen, fPtr->DebugLvl & 1);
 #if XV
 	InitXVideo(pScreen, fPtr->DebugLvl & 2);
 #endif
 	if(xf86ReturnOptValBool(fPtr->Options, OPTION_HWCURSOR, FALSE))
 	    RkDispHardwareCursor_Init(pScreen);
-	RkMaliDRI2_Init(pScreen, fPtr->DebugLvl & 4);
+	RkMaliDRI2_Init(pScreen, fPtr->DebugLvl & 4, fPtr->WaitForSync,
+			xf86ReturnOptValBool(fPtr->Options, OPTION_HWLAYER3D, FALSE));
 
 	TRACE_EXIT("FBDevScreenInit");
 

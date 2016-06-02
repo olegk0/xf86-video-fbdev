@@ -225,15 +225,20 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
      can_use_overlay = FALSE;
     }
 
-    if(mali->OvlPg == ERRORL){
-    	mali->OvlPg = OvlAllocLay(ANYL, ALC_FRONT_BACK_FB);
-    	if(mali->OvlPg == ERRORL){
+    if(mali->OvlPg == ERROR_L){
+    	OvlLayoutType ltype;
+    	if(mali->HWLayerFor3D)
+    		ltype = EMU_L;
+    	else
+    		ltype = ANY_L;
+    	mali->OvlPg = OvlAllocLay(ltype, ALC_FRONT_BACK_FB);
+    	if(mali->OvlPg == ERROR_L){
     		ERRMSG("Cannot alloc overlay\n");
     		can_use_overlay = FALSE;
     	}else{//init
     		DebugMsg("MaliDRI2CreateBuffer: Alloc ovl:%d",mali->OvlPg);
     		mali->colorKey = HWAclSetColorKey(pScrn);
-    		OvlSetupFb(mali->OvlPg, RK_FORMAT_DEFAULT, RK_FORMAT_DEFAULT, pDraw->width, pDraw->height);
+    		OvlSetupFb(mali->OvlPg, RKL_FORMAT_DEFAULT, pDraw->width, pDraw->height);
     		OvlEnable(mali->OvlPg, 1, 0);
     		mali->FrontMemBuf = OvlGetBufByLay(mali->OvlPg, FRONT_FB);
     		mali->BackMemBuf = OvlGetBufByLay(mali->OvlPg, BACK_FB);
@@ -402,8 +407,7 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     if(mali->ovl_h != pDraw->height || mali->ovl_w != pDraw->width){
     	mali->ovl_h = pDraw->height;
     	mali->ovl_w = pDraw->width;
-//    	ret = OvlSetModeFb(mali->OvlPg, pDraw->width,pDraw->height, RK_FORMAT_DEFAULT);
-    	ret = OvlSetupFb(mali->OvlPg, RK_FORMAT_DEFAULT, RK_FORMAT_DEFAULT, pDraw->width, pDraw->height);
+    	ret = OvlSetupFb(mali->OvlPg, RKL_FORMAT_DEFAULT, pDraw->width, pDraw->height);
         DebugMsg("Change size to w:%d,h:%d ret:%d\n", pDraw->width,pDraw->height, ret);
 //        mali->colorKey = HWAclSetColorKey(pScrn);
         Changed = TRUE;
@@ -421,7 +425,8 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     	HWAclFillKeyHelper(pDraw, mali->colorKey, pRegion, FALSE);
     }
 
-    OvlWaitSync(mali->OvlPg);
+    if(mali->WaitForSync)
+    	OvlWaitSync(mali->OvlPg);
     if(bufpriv->frame)
     	OvlFlipFb(mali->OvlPg, FRONT_FB, 0);
     else
@@ -447,9 +452,9 @@ DestroyWindow(WindowPtr pWin)
         mali->ovl_y = 0;
         mali->ovl_w = 0;
         mali->ovl_h = 0;
-        if(mali->OvlPg != ERRORL){
+        if(mali->OvlPg != ERROR_L){
     		OvlFreeLay(mali->OvlPg);
-    		mali->OvlPg = ERRORL;
+    		mali->OvlPg = ERROR_L;
     	}
         DebugMsg("DestroyWindow %p\n", pWin);
     }
@@ -498,7 +503,7 @@ DestroyPixmap(PixmapPtr pPixmap)
     return result;
 }
 
-void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug)
+void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug, Bool WaitForSync, Bool HWLayerFor3D)
 {
     int drm_fd;
     DRI2InfoRec info;
@@ -584,8 +589,10 @@ void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug)
         pScreen->DestroyPixmap = DestroyPixmap;
 
         mali->drm_fd = drm_fd;
-        mali->OvlPg = ERRORL;
+        mali->OvlPg = ERROR_L;
         mali->debug = debug;
+        mali->WaitForSync = WaitForSync;
+		mali->HWLayerFor3D = HWLayerFor3D;
 
         return;
     }

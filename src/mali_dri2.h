@@ -78,10 +78,12 @@ typedef struct {
     void*					BackMapBuf;
     OvlLayPg				OvlPg;
     Bool					debug;
+    Bool					HWLayerFor3D;
+    Bool 					WaitForSync;
 } RkMaliRec, *RkMaliPtr;
 
 //**********************************************
-void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug);
+void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug, Bool WaitForSync, Bool HWLayerFor3D);
 void RkMaliDRI2_Close(ScreenPtr pScreen);
 
 #endif
