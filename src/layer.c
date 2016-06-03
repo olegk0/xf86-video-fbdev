@@ -137,6 +137,7 @@ void InitHWAcl(ScreenPtr pScreen, Bool debug)
     FBDevPtr pMxv = FBDEVPTR(pScrn);
     HWAclPtr hwacl;
     int ret;
+    uint32_t ver;
 
     pMxv->HWAcl = NULL;
 
@@ -147,6 +148,10 @@ void InitHWAcl(ScreenPtr pScreen, Bool debug)
     	ERRMSG( "HW:Error init RkOverlays:%d",ret);
     	return;
     }
+
+	INFMSG( "HW:Number of overlays(with UI): %d",ret);
+	ver = OvlGetVersion();
+	INFMSG( "HW:rk_overlays version: %d.%d",ver>>8,ver&0xff);
 
     hwacl = ovl_init_ovl(pScrn);
     if(!hwacl){
