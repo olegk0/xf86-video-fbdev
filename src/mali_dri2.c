@@ -227,10 +227,13 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
 
     if(mali->OvlPg == ERROR_L){
     	OvlLayoutType ltype;
-    	if(mali->HWLayerFor3D)
-    		ltype = EMU_L;
+    	if(mali->HWFullScrFor3D)
+    		ltype = SCALE_L;
     	else
-    		ltype = ANY_L;
+    		ltype = ANY_HW_L;
+    	if(!mali->HWLayerFor3D)
+    		ltype += EMU_L;
+
     	mali->OvlPg = OvlAllocLay(ltype, ALC_FRONT_BACK_FB);
     	if(mali->OvlPg == ERROR_L){
     		ERRMSG("Cannot alloc overlay\n");
@@ -246,6 +249,8 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     		mali->ump_fb_back_secure_id = OvlGetSidByMemPg(mali->BackMemBuf);
     		mali->FrontMapBuf = OvlMapBufMem(mali->FrontMemBuf);
     		mali->BackMapBuf = OvlMapBufMem(mali->BackMemBuf);
+    		mali->scr_w = OvlGetXresByLay(UI_L);
+			mali->scr_h = OvlGetYresByLay(UI_L);
     	}
     }
 
@@ -416,7 +421,10 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     if(mali->ovl_x != pDraw->x || mali->ovl_y != pDraw->y || Changed){
     	mali->ovl_x = pDraw->x;
     	mali->ovl_y = pDraw->y;
-    	ret = OvlSetupDrw(mali->OvlPg, mali->ovl_x, mali->ovl_y, pDraw->width, pDraw->height);
+    	if(mali->HWFullScrFor3D)
+    		ret = OvlSetupDrw(mali->OvlPg, 0, 0, mali->scr_w, mali->scr_h);
+    	else
+    		ret = OvlSetupDrw(mali->OvlPg, mali->ovl_x, mali->ovl_y, pDraw->width, pDraw->height);
         DebugMsg("Change pos to x:%d,y:%d ret:%d\n", pDraw->x,pDraw->y, ret);
         Changed = TRUE;
     }
@@ -426,7 +434,7 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     }
 
     if(mali->WaitForSync)
-    	OvlWaitSync(mali->OvlPg);
+    	OvlWaitSync();
     if(bufpriv->frame)
     	OvlFlipFb(mali->OvlPg, FRONT_FB, 0);
     else
@@ -503,7 +511,7 @@ DestroyPixmap(PixmapPtr pPixmap)
     return result;
 }
 
-void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug, Bool WaitForSync, Bool HWLayerFor3D)
+void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug, Bool WaitForSync, Bool HWLayerFor3D, Bool HWFullScrFor3D)
 {
     int drm_fd;
     DRI2InfoRec info;
@@ -593,6 +601,7 @@ void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug, Bool WaitForSync, Bool HWLay
         mali->debug = debug;
         mali->WaitForSync = WaitForSync;
 		mali->HWLayerFor3D = HWLayerFor3D;
+		mali->HWFullScrFor3D = HWFullScrFor3D;
 
         return;
     }

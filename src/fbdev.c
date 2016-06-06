@@ -113,6 +113,7 @@ typedef enum {
 	OPTION_DEBUG,
 	OPTION_WAITSYNC,
 	OPTION_HWLAYER3D,
+	OPTION_HWFS3D,
 } FBDevOpts;
 
 static const OptionInfoRec FBDevOptions[] = {
@@ -123,7 +124,8 @@ static const OptionInfoRec FBDevOptions[] = {
 	{ OPTION_HWCURSOR,	"HWCursor",	OPTV_BOOLEAN,	{0},	FALSE },
 	{ OPTION_DEBUG,		"debug",	OPTV_INTEGER,	{0},	FALSE },
 	{ OPTION_WAITSYNC,	"WaitForSync",	OPTV_BOOLEAN,	{0},	FALSE },
-	{ OPTION_HWLAYER3D,	"HWLayerFor3D",	OPTV_BOOLEAN,	{0},	FALSE },
+	{ OPTION_HWLAYER3D,	"HWLayerFor3D",	OPTV_BOOLEAN,	{0},	TRUE },
+	{ OPTION_HWFS3D,	"HWFullScrFor3D",	OPTV_BOOLEAN,	{0},	FALSE },
 	{ -1,			NULL,		OPTV_NONE,	{0},	FALSE }
 };
 
@@ -817,7 +819,8 @@ FBDevScreenInit(SCREEN_INIT_ARGS_DECL)
 	if(xf86ReturnOptValBool(fPtr->Options, OPTION_HWCURSOR, FALSE))
 	    RkDispHardwareCursor_Init(pScreen);
 	RkMaliDRI2_Init(pScreen, fPtr->DebugLvl & 4, fPtr->WaitForSync,
-			xf86ReturnOptValBool(fPtr->Options, OPTION_HWLAYER3D, FALSE));
+			xf86ReturnOptValBool(fPtr->Options, OPTION_HWLAYER3D, FALSE),
+			xf86ReturnOptValBool(fPtr->Options, OPTION_HWFS3D, FALSE));
 
 	TRACE_EXIT("FBDevScreenInit");
 

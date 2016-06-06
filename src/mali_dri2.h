@@ -56,6 +56,8 @@ typedef struct {
     int                     ovl_y;
     int                     ovl_w;
     int                     ovl_h;
+    int                     scr_w;
+    int                     scr_h;
     unsigned int			lstatus;
 
     uint32_t				colorKey;
@@ -80,10 +82,11 @@ typedef struct {
     Bool					debug;
     Bool					HWLayerFor3D;
     Bool 					WaitForSync;
+    Bool 					HWFullScrFor3D;
 } RkMaliRec, *RkMaliPtr;
 
 //**********************************************
-void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug, Bool WaitForSync, Bool HWLayerFor3D);
+void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug, Bool WaitForSync, Bool HWLayerFor3D, Bool HWFullScrFor3D);
 void RkMaliDRI2_Close(ScreenPtr pScreen);
 
 #endif
