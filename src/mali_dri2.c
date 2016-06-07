@@ -227,12 +227,25 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
 
     if(mali->OvlPg == ERROR_L){
     	OvlLayoutType ltype;
-    	if(mali->HWFullScrFor3D)
+    	if(mali->HWFullScrFor3D){
     		ltype = SCALE_L;
+    		mali->OvlPgUI = OvlAllocLay( UI_L, ALC_FRONT_BACK_FB);
+    		if(mali->OvlPgUI != ERROR_L){
+    			mali->UIBackMemBuf = OvlGetBufByLay(mali->OvlPgUI, BACK_FB);
+    			mali->UIBackMapBuf = OvlMapBufMem(mali->UIBackMemBuf);
+    			if(mali->UIBackMapBuf){
+    				OvlClrMemPg(mali->UIBackMemBuf);
+    				OvlFlipFb( mali->OvlPgUI, BACK_FB, 0);
+    			}else
+    				OvlFreeLay(mali->OvlPgUI);
+    		}
+    	}
     	else
     		ltype = ANY_HW_L;
-    	if(!mali->HWLayerFor3D)
+
+    	if(!mali->HWLayerFor3D){//use IPP/RGA
     		ltype += EMU_L;
+    	}
 
     	mali->OvlPg = OvlAllocLay(ltype, ALC_FRONT_BACK_FB);
     	if(mali->OvlPg == ERROR_L){
@@ -413,6 +426,9 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     	mali->ovl_h = pDraw->height;
     	mali->ovl_w = pDraw->width;
     	ret = OvlSetupFb(mali->OvlPg, RKL_FORMAT_DEFAULT, pDraw->width, pDraw->height);
+    	if(mali->HWFullScrFor3D && !mali->HWLayerFor3D && mali->OvlPgUI != ERROR_L){
+    		OvlSetIPP_RGADst( mali->OvlPg, mali->UIBackMemBuf);
+    	}
         DebugMsg("Change size to w:%d,h:%d ret:%d\n", pDraw->width,pDraw->height, ret);
 //        mali->colorKey = HWAclSetColorKey(pScrn);
         Changed = TRUE;
@@ -463,6 +479,10 @@ DestroyWindow(WindowPtr pWin)
         if(mali->OvlPg != ERROR_L){
     		OvlFreeLay(mali->OvlPg);
     		mali->OvlPg = ERROR_L;
+    	}
+        if(mali->OvlPgUI != ERROR_L){
+    		OvlFreeLay(mali->OvlPgUI);
+    		mali->OvlPgUI = ERROR_L;
     	}
         DebugMsg("DestroyWindow %p\n", pWin);
     }
@@ -631,6 +651,7 @@ void RkMaliDRI2_Close(ScreenPtr pScreen)
     	pScreen->DestroyPixmap    = mali->DestroyPixmap;
 
     	OvlFreeLay(mali->OvlPg);
+    	OvlFreeLay(mali->OvlPgUI);
 
     	if (mali->ump_null_handle != UMP_INVALID_MEMORY_HANDLE)
     		ump_reference_release(mali->ump_null_handle);

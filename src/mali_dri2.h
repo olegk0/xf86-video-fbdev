@@ -79,6 +79,9 @@ typedef struct {
     void*					FrontMapBuf;
     void*					BackMapBuf;
     OvlLayPg				OvlPg;
+    OvlLayPg				OvlPgUI;
+    OvlMemPgPtr				UIBackMemBuf;
+    void*					UIBackMapBuf;
     Bool					debug;
     Bool					HWLayerFor3D;
     Bool 					WaitForSync;
