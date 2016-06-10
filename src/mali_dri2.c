@@ -449,13 +449,13 @@ static void MaliDRI2CopyRegion(DrawablePtr   pDraw,
     	HWAclFillKeyHelper(pDraw, mali->colorKey, pRegion, FALSE);
     }
 
-    if(mali->WaitForSync)
-    	OvlWaitSync();
     if(bufpriv->frame)
     	OvlFlipFb(mali->OvlPg, FRONT_FB, 0);
     else
     	OvlFlipFb(mali->OvlPg, BACK_FB, 0);
 
+    if(mali->WaitForSync)
+    	OvlWaitVSync();
 }
 
 /************************************************************************/
