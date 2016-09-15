@@ -252,7 +252,7 @@ static DRI2Buffer2Ptr MaliDRI2CreateBuffer(DrawablePtr  pDraw,
     		ERRMSG("Cannot alloc overlay\n");
     		can_use_overlay = FALSE;
     	}else{//init
-    		DebugMsg("MaliDRI2CreateBuffer: Alloc ovl:%d",mali->OvlPg);
+    		DebugMsg("MaliDRI2CreateBuffer: Alloc ovl:%d\n",mali->OvlPg);
     		mali->colorKey = HWAclSetColorKey(pScrn);
     		OvlSetupFb(mali->OvlPg, RKL_FORMAT_DEFAULT, pDraw->width, pDraw->height);
     		OvlEnable(mali->OvlPg, 1, 0);
@@ -329,9 +329,10 @@ static void MaliDRI2DestroyBuffer(DrawablePtr pDraw, DRI2Buffer2Ptr buffer)
 
     if (buffer != NULL) {
     	if(buffer->driverPrivate != NULL){
-    		mali->lstatus--;
+//    		mali->lstatus--;
     		privates = (UMPBufferInfoPtr)buffer->driverPrivate;
     		if(!privates->pPixmap) {
+        		mali->lstatus--;
     			/* If pPixmap != 0, then these are freed in DestroyPixmap */
     			if(privates->handle != UMP_INVALID_MEMORY_HANDLE) {
     				ump_mapped_pointer_release(privates->handle);
@@ -618,6 +619,7 @@ void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug, Bool WaitForSync, Bool HWLay
 
         mali->drm_fd = drm_fd;
         mali->OvlPg = ERROR_L;
+        mali->OvlPgUI = ERROR_L;
         mali->debug = debug;
         mali->WaitForSync = WaitForSync;
 		mali->HWLayerFor3D = HWLayerFor3D;

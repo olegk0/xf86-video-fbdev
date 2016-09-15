@@ -1,4 +1,4 @@
-xf86-video-rkfb v0.9.0 
+xf86-video-rkfb v0.9.1
 ================
 
 xf86-video-rkfb for rk3066, rk3188. Activated hardware cursor and XVideo, also support Mali

@@ -87,12 +87,12 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short src_w, short src_h, int id)
     switch(id) {
     case FOURCC_YV12://YVU planar 	needs to be converted into a SemiPlanar format (with HW-RGA or SW)
     case FOURCC_I420://YUV identical to YV12 except that the U and V plane order is reversed
-    	out_mode = RKL_FORMAT_YCrCb_NV12_SP;//SP disp format
+    	out_mode = RKL_FORMAT_UV_NV12_SP;//SP disp format
 //    	XVport->src_pitch = (src_w + 3)& ~3;
         break;
     case FOURCC_UYVY://packed U0Y0V0Y1 U2Y2V2Y3		needs to unpacking in SemiPlanar
     case FOURCC_YUY2://packed low Y0U0Y1V0 hi
-    	out_mode = RKL_FORMAT_YCbCr_422_SP;
+    	out_mode = RKL_FORMAT_UV_NV16_SP;
 //    	XVport->src_pitch = src_w<<1;
     	break;
     default:
