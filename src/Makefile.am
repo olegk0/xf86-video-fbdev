@@ -25,7 +25,7 @@
 # TODO: -nostdlib/-Bstatic/-lgcc platform magic, not installing the .a, etc.
 AM_CFLAGS = @XORG_CFLAGS@ -I/usr/include/libdrm -I./include
 rkfb_drv_la_LTLIBRARIES = rkfb_drv.la
-rkfb_drv_la_LDFLAGS = -module -avoid-version -lUMP -lpthread -lrklayers
+rkfb_drv_la_LDFLAGS = -module -avoid-version -lpthread -lrklayers
 rkfb_drv_ladir = @moduledir@/drivers
 
 rkfb_drv_la_SOURCES = \

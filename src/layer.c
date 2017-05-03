@@ -72,19 +72,20 @@ void HWAclFillKeyHelper(DrawablePtr pDraw, unsigned int ColorKey, RegionPtr pReg
 	MFREE(rects);
 	FreeScratchGC(pGC);
 }//----------------------------------------------------------------
-uint32_t HWAclSetColorKey(ScrnInfoPtr pScrn)
+uint32_t HWAclSetColorKey(ScrnInfoPtr pScrn, OvlLayPg OvlPg)
 {
     FBDevPtr pMxv = FBDEVPTR(pScrn);
    	HWAclPtr hwacl = pMxv->HWAcl;
    	uint32_t tmp;
-
+/*
    	if(OvlGetUIBpp() == 16)
    		tmp = COLOR_KEY_16;//TODO
 	else
 		tmp = COLOR_KEY_32;
-
-   	OvlSetColorKey(0xff000000 | tmp);
-
+*/
+	OvlSetColorKey( OvlPg, pMxv->ColorKey, pMxv->ColorKeyEn);
+	tmp = OvlGetUIColorKey();
+	OVLDBG("ColorKey:0x%X, En:%d, UIColorKey:0x%X", pMxv->ColorKey, pMxv->ColorKeyEn, tmp);
 	return tmp;
 }
 //++++++++++++++++++++++++++++++init/close+++++++++++++++++++++++++

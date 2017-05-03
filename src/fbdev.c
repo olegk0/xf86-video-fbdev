@@ -79,7 +79,7 @@ enum { FBDEV_ROTATE_NONE=0, FBDEV_ROTATE_CW=270, FBDEV_ROTATE_UD=180, FBDEV_ROTA
  */
 static int pix24bpp = 0;
 
-#define FBDEV_VERSION		5000
+#define FBDEV_VERSION		8000
 #define FBDEV_NAME		"RKFB"
 #define FBDEV_DRIVER_NAME	"rkfb"
 
@@ -112,7 +112,7 @@ typedef enum {
 	OPTION_HWCURSOR,
 	OPTION_DEBUG,
 	OPTION_WAITSYNC,
-	OPTION_HWLAYER3D,
+	OPTION_COLORKEY,
 	OPTION_HWFS3D,
 } FBDevOpts;
 
@@ -124,7 +124,7 @@ static const OptionInfoRec FBDevOptions[] = {
 	{ OPTION_HWCURSOR,	"HWCursor",	OPTV_BOOLEAN,	{0},	FALSE },
 	{ OPTION_DEBUG,		"debug",	OPTV_INTEGER,	{0},	FALSE },
 	{ OPTION_WAITSYNC,	"WaitForSync",	OPTV_BOOLEAN,	{0},	FALSE },
-	{ OPTION_HWLAYER3D,	"HWLayerFor3D",	OPTV_BOOLEAN,	{0},	TRUE },
+	{ OPTION_COLORKEY,	"ColorKey",	OPTV_INTEGER,	{0},	FALSE },
 	{ OPTION_HWFS3D,	"HWFullScrFor3D",	OPTV_BOOLEAN,	{0},	FALSE },
 	{ -1,			NULL,		OPTV_NONE,	{0},	FALSE }
 };
@@ -811,6 +811,10 @@ FBDevScreenInit(SCREEN_INIT_ARGS_DECL)
 	fPtr->CloseScreen = pScreen->CloseScreen;
 	pScreen->CloseScreen = FBDevCloseScreen;
 
+	fPtr->ColorKeyEn = xf86GetOptValInteger(fPtr->Options, OPTION_COLORKEY, &fPtr->ColorKey);
+	if(!fPtr->ColorKeyEn)
+	    fPtr->ColorKey = 0;
+
 	fPtr->WaitForSync = xf86ReturnOptValBool(fPtr->Options, OPTION_WAITSYNC, FALSE);
 	InitHWAcl(pScreen, fPtr->DebugLvl & 1);
 #if XV
@@ -819,8 +823,7 @@ FBDevScreenInit(SCREEN_INIT_ARGS_DECL)
 	if(xf86ReturnOptValBool(fPtr->Options, OPTION_HWCURSOR, FALSE))
 	    RkDispHardwareCursor_Init(pScreen);
 	RkMaliDRI2_Init(pScreen, fPtr->DebugLvl & 4, fPtr->WaitForSync,
-			xf86ReturnOptValBool(fPtr->Options, OPTION_HWLAYER3D, FALSE),
-			xf86ReturnOptValBool(fPtr->Options, OPTION_HWFS3D, FALSE));
+		xf86ReturnOptValBool(fPtr->Options, OPTION_HWFS3D, FALSE));
 
 	TRACE_EXIT("FBDevScreenInit");
 

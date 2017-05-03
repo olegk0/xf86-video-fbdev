@@ -49,12 +49,14 @@ typedef struct {
 	OptionInfoPtr		Options;
 	Bool				WaitForSync;
 //	Bool				HWLayerFor3D;
+	unsigned int			ColorKey;
+	Bool				ColorKeyEn;
 
 	void				*RkMali;
 	void				*RkHWC;
 	void				*HWAcl;
-    void				*XVport;
-    int					DebugLvl;
+	void				*XVport;
+	int					DebugLvl;
 
 } FBDevRec, *FBDevPtr;
 

@@ -19,8 +19,6 @@
 #ifndef MALI_UMP_DRI2_H
 #define MALI_UMP_DRI2_H
 
-#include <include/ump/ump.h>
-#include <include/ump/ump_ref_drv.h>
 #include "dri2.h"
 
 #include "uthash.h"
@@ -32,7 +30,6 @@ enum {
     ST_SCR = 2,
 };
 
-/* Data structure with the information about an UMP buffer */
 typedef struct
 {
     /* The migrated pixmap (may be NULL if it is a window) */
@@ -42,54 +39,58 @@ typedef struct
     int                     refcount;
     UT_hash_handle          hh;
 
-    ump_handle              handle;
-    size_t                  size;
-    uint8_t                *addr;
     int                     depth;
     size_t                  width;
     size_t                  height;
-    Bool					frame;
-} UMPBufferInfoRec, *UMPBufferInfoPtr;
+//    uint32_t		fb_id;
 
-typedef struct {
     int                     ovl_x;
     int                     ovl_y;
     int                     ovl_w;
     int                     ovl_h;
-    int                     scr_w;
-    int                     scr_h;
-    unsigned int			lstatus;
+
+    Bool                    bOverlayWinEnabled;
+    OvlMemPgPtr		MemBuf;
+    void*		MapMemBuf;
+
+} UMPBufferInfoRec, *UMPBufferInfoPtr;
+
+#define DRIMEMBUFCNT 3
+
+typedef struct {
 
     uint32_t				colorKey;
     WindowPtr               pOverlayWin;
-    Bool                    bOverlayWinEnabled;
 
+    int                     scr_w;
+    int                     scr_h;
+
+
+    Bool                    bOverlayWinOverlapped;
+    Bool                    bWalkingAboveOverlayWin;
     Bool                    bHardwareCursorIsInUse;
 //    struct fb_var_screeninfo fb_var;
     DestroyWindowProcPtr    DestroyWindow;
     DestroyPixmapProcPtr    DestroyPixmap;
-    ump_secure_id			ump_fb_front_secure_id;
-    ump_secure_id			ump_fb_back_secure_id;
-    ump_secure_id			ump_null_secure_id;
-    ump_handle				ump_null_handle;
+    PostValidateTreeProcPtr PostValidateTree;
+    uint32_t			null_id;
+    uint32_t				null_handle;
     UMPBufferInfoPtr        HashPixmapToUMP;
     int                     drm_fd;
-    OvlMemPgPtr				FrontMemBuf;
-    OvlMemPgPtr				BackMemBuf;
-    void*					FrontMapBuf;
-    void*					BackMapBuf;
-    OvlLayPg				OvlPg;
-    OvlLayPg				OvlPgUI;
-    OvlMemPgPtr				UIBackMemBuf;
-    void*					UIBackMapBuf;
-    Bool					debug;
-    Bool					HWLayerFor3D;
-    Bool 					WaitForSync;
-    Bool 					HWFullScrFor3D;
+    OvlLayPg			OvlPg;
+    OvlLayPg			OvlPgUI;
+    OvlMemPgPtr			UIBackMemBuf;
+    void*			UIBackMapBuf;
+    Bool			debug;
+    Bool 			WaitForSync;
+    Bool 			HWFullScrFor3D;
+    Bool 			EnFl;
+    int			mali_refs;
+    int 		OvlNeedUpdate;
 } RkMaliRec, *RkMaliPtr;
 
 //**********************************************
-void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug, Bool WaitForSync, Bool HWLayerFor3D, Bool HWFullScrFor3D);
+void RkMaliDRI2_Init(ScreenPtr pScreen, Bool debug, Bool WaitForSync, Bool HWFullScrFor3D);
 void RkMaliDRI2_Close(ScreenPtr pScreen);
 
 #endif

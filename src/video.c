@@ -113,19 +113,19 @@ static Bool XVInitStreams(ScrnInfoPtr pScrn, short src_w, short src_h, int id)
 //	XVport->Uoffset = src_h * src_w;
 //	XVport->Voffset = XVport->Uoffset + (XVport->Uoffset>>2);
 
-	XVDBG("Pitch src y:%d",XVport->src_pitch_y);
-	XVDBG("Pitch src c:%d",XVport->src_pitch_c);
-	XVDBG("Pitch U offs:%d",XVport->Uoffset);
-	XVDBG("Pitch V offs:%d",XVport->Voffset);
+    XVDBG("Pitch src y:%d",XVport->src_pitch_y);
+    XVDBG("Pitch src c:%d",XVport->src_pitch_c);
+    XVDBG("Pitch U offs:%d",XVport->Uoffset);
+    XVDBG("Pitch V offs:%d",XVport->Voffset);
 
-    XVport->colorKey = HWAclSetColorKey(pScrn);
+    XVport->colorKey = HWAclSetColorKey(pScrn, XVport->OvlPg);
 
     OvlEnable(XVport->OvlPg, 1, 1);
 
-	XVport->w_drw = 0;
-	XVport->h_drw = 0;
-	XVport->x_drw = 0;
-	XVport->y_drw = 0;
+    XVport->w_drw = 0;
+    XVport->h_drw = 0;
+    XVport->x_drw = 0;
+    XVport->y_drw = 0;
 
     XVDBG("Setup overlay - pass");
     return TRUE;

@@ -21,10 +21,10 @@
 #define __LAYER_H_
 
 #include "rk_layers.h"
-
+/*
 #define COLOR_KEY_32	0x020202
 #define COLOR_KEY_16	0x0
-
+*/
 typedef struct {
 	int				fd_UI;
 	struct fb_var_screeninfo	cur_var;
@@ -38,6 +38,6 @@ void InitHWAcl(ScreenPtr pScreen, Bool debug);
 void CloseHWAcl(ScreenPtr pScreen);
 int HWAclUpdSavMod(ScrnInfoPtr pScrn);
 void HWAclFillKeyHelper(DrawablePtr pDraw, unsigned int ColorKey, RegionPtr pRegion, Bool DrwOffset);
-uint32_t HWAclSetColorKey(ScrnInfoPtr pScrn);
+uint32_t HWAclSetColorKey(ScrnInfoPtr pScrn, OvlLayPg OvlPg);
 
 #endif
